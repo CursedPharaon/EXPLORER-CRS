@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>CRS Explorer — кнопки без автоматических действий</title>
+    <title>CRS Explorer — полная версия</title>
     <style>
         * {
             margin: 0;
@@ -19,7 +19,7 @@
         }
 
         .explorer {
-            max-width: 700px;
+            max-width: 1400px;
             margin: 0 auto;
             background: white;
             border-radius: 28px;
@@ -38,6 +38,28 @@
             justify-content: space-between;
         }
 
+        .editor-container {
+            display: flex;
+            border-bottom: 1px solid #c6c6c8;
+        }
+
+        .line-numbers {
+            background: #f2f2f6;
+            padding: 16px 8px;
+            text-align: right;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.5;
+            color: #8e8e93;
+            border-right: 1px solid #c6c6c8;
+            user-select: none;
+            min-width: 50px;
+        }
+
+        .line-numbers div {
+            white-space: pre;
+        }
+
         textarea {
             width: 100%;
             font-family: 'Courier New', monospace;
@@ -46,7 +68,7 @@
             border: none;
             background: #fefef7;
             line-height: 1.5;
-            min-height: 250px;
+            min-height: 350px;
             resize: vertical;
             outline: none;
         }
@@ -54,7 +76,6 @@
         .toolbar {
             background: #f2f2f6;
             padding: 12px 16px;
-            border-top: 1px solid #c6c6c8;
             border-bottom: 1px solid #c6c6c8;
             display: flex;
             flex-wrap: wrap;
@@ -94,7 +115,7 @@
             background: white;
             border-radius: 20px;
             padding: 16px;
-            min-height: 180px;
+            min-height: 250px;
             border: 1px solid #e5e5ea;
         }
 
@@ -121,11 +142,14 @@
 <body>
 <div class="explorer">
     <div class="header">
-        <span>📱 CRS Explorer</span>
-        <span style="font-size:12px;">&lt;CURSED-CODING&gt;</span>
+        <span>📱 CRS Explorer — полная версия</span>
+        <span style="font-size:12px;">&lt;CURSED-CODING&gt; ... &lt;/CCURSED-CODING&gt;</span>
     </div>
 
-    <textarea id="crsCode" placeholder="Пишите CRS код..."></textarea>
+    <div class="editor-container">
+        <div class="line-numbers" id="lineNumbers"></div>
+        <textarea id="crsCode" placeholder="Пишите CRS код..."></textarea>
+    </div>
 
     <div class="toolbar">
         <button class="tool-btn" id="runBtn">▶ ЗАПУСТИТЬ</button>
@@ -139,7 +163,7 @@
         <div id="errorPanel" class="error"></div>
     </div>
     <div class="footer">
-        ⚡ Кнопки &lt;c.button&gt; ничего не делают без JavaScript
+        ⚡ Кнопки &lt;c.button&gt; ничего не делают без JavaScript | 50+ команд
     </div>
 </div>
 
@@ -147,6 +171,26 @@
     const editor = document.getElementById('crsCode');
     const renderDiv = document.getElementById('render');
     const errorPanel = document.getElementById('errorPanel');
+    const lineNumbersDiv = document.getElementById('lineNumbers');
+
+    function updateLineNumbers() {
+        const code = editor.value;
+        const lines = code.split(/\r?\n/);
+        let numbersHtml = '';
+        for (let i = 1; i <= lines.length; i++) {
+            numbersHtml += `<div>${i}</div>`;
+        }
+        lineNumbersDiv.innerHTML = numbersHtml;
+    }
+
+    function syncScroll() {
+        editor.addEventListener('scroll', function() {
+            lineNumbersDiv.scrollTop = editor.scrollTop;
+        });
+    }
+
+    editor.addEventListener('input', updateLineNumbers);
+    editor.addEventListener('keydown', updateLineNumbers);
 
     function escapeHtml(str) {
         if (!str) return "";
@@ -250,10 +294,8 @@
                 const innerRaw = closed.inner;
                 const nextIdx = closed.next;
 
-                // Обработка команд — КНОПКА НЕ ДЕЛАЕТ НИЧЕГО ПО УМОЛЧАНИЮ
                 switch (tagName) {
                     case 'button':
-                        // Кнопка БЕЗ АВТОМАТИЧЕСКОГО alert
                         html += `<button class="crs-button">${escapeHtml(innerRaw.trim() || 'Кнопка')}</button>`;
                         break;
                     case 'text':
@@ -366,11 +408,105 @@
                     case 'details': {
                         const subResult = this.parseInner(innerRaw);
                         if (subResult.error) return subResult;
-                        html += `<details><summary>подробнее</summary><div style="margin-top:8px;">${subResult.html}</div></details>`;
+                        html += `<details style="margin:8px 0;"><summary>подробнее</summary><div style="margin-top:8px;">${subResult.html}</div></details>`;
                         break;
                     }
                     case 'summary':
                         html += `<summary style="cursor:pointer; font-weight:bold;">${escapeHtml(innerRaw)}</summary>`;
+                        break;
+                    case 'mark':
+                        html += `<mark style="background:#ffecb3; padding:2px 4px;">${escapeHtml(innerRaw)}</mark>`;
+                        break;
+                    case 'icon':
+                        html += `<span style="font-size:1.2rem;">${escapeHtml(innerRaw)}</span>`;
+                        break;
+                    case 'spacer':
+                        const h = parseInt(innerRaw) || 16;
+                        html += `<div style="height:${h}px;"></div>`;
+                        break;
+                    case 'tooltip':
+                        html += `<span title="${escapeHtml(innerRaw)}" style="border-bottom:1px dotted #888; cursor:help;">${escapeHtml(innerRaw.substring(0,20))}</span>`;
+                        break;
+                    case 'modal': {
+                        const subResult = this.parseInner(innerRaw);
+                        if (subResult.error) return subResult;
+                        html += `<div style="background:#fff; border:2px solid #aaa; border-radius:12px; padding:14px; margin:12px 0;">${subResult.html}</div>`;
+                        break;
+                    }
+                    case 'nav': {
+                        const subResult = this.parseInner(innerRaw);
+                        if (subResult.error) return subResult;
+                        html += `<nav style="display:flex; gap:15px; background:#f2f2f6; padding:10px; border-radius:20px;">${subResult.html}</nav>`;
+                        break;
+                    }
+                    case 'footer': {
+                        const subResult = this.parseInner(innerRaw);
+                        if (subResult.error) return subResult;
+                        html += `<footer style="border-top:1px solid #ccc; margin-top:16px; padding:12px; font-size:0.8rem;">${subResult.html}</footer>`;
+                        break;
+                    }
+                    case 'header': {
+                        const subResult = this.parseInner(innerRaw);
+                        if (subResult.error) return subResult;
+                        html += `<header style="background:#f2f2f6; padding:12px; border-radius:16px; margin-bottom:12px;">${subResult.html}</header>`;
+                        break;
+                    }
+                    case 'section': {
+                        const subResult = this.parseInner(innerRaw);
+                        if (subResult.error) return subResult;
+                        html += `<section style="margin:16px 0;">${subResult.html}</section>`;
+                        break;
+                    }
+                    case 'article': {
+                        const subResult = this.parseInner(innerRaw);
+                        if (subResult.error) return subResult;
+                        html += `<article style="border-left:3px solid #007aff; padding-left:16px; margin:12px 0;">${subResult.html}</article>`;
+                        break;
+                    }
+                    case 'aside': {
+                        const subResult = this.parseInner(innerRaw);
+                        if (subResult.error) return subResult;
+                        html += `<aside style="background:#f2f2f6; padding:12px; border-radius:16px;">${subResult.html}</aside>`;
+                        break;
+                    }
+                    case 'figure': {
+                        const subResult = this.parseInner(innerRaw);
+                        if (subResult.error) return subResult;
+                        html += `<figure style="margin:12px 0;">${subResult.html}</figure>`;
+                        break;
+                    }
+                    case 'figcaption':
+                        html += `<figcaption style="font-size:0.75rem; text-align:center;">${escapeHtml(innerRaw)}</figcaption>`;
+                        break;
+                    case 'blockquote': {
+                        const subResult = this.parseInner(innerRaw);
+                        if (subResult.error) return subResult;
+                        html += `<blockquote style="border-left:4px solid #ccc; padding-left:16px; margin:12px 0; color:#555;">${subResult.html}</blockquote>`;
+                        break;
+                    }
+                    case 'strong':
+                        html += `<strong>${escapeHtml(innerRaw)}</strong>`;
+                        break;
+                    case 'em':
+                        html += `<em>${escapeHtml(innerRaw)}</em>`;
+                        break;
+                    case 'small':
+                        html += `<small>${escapeHtml(innerRaw)}</small>`;
+                        break;
+                    case 'video':
+                        html += `<video controls style="width:100%; max-width:400px; border-radius:12px;"><source src="${escapeHtml(innerRaw)}" type="video/mp4"></video>`;
+                        break;
+                    case 'audio':
+                        html += `<audio controls src="${escapeHtml(innerRaw)}"></audio>`;
+                        break;
+                    case 'iframe':
+                        html += `<iframe src="${escapeHtml(innerRaw)}" style="width:100%; height:200px; border:1px solid #ccc; border-radius:12px;"></iframe>`;
+                        break;
+                    case 'canvas':
+                        html += `<canvas style="border:1px solid #ccc; background:#f9f9f9; width:100%; height:150px; border-radius:12px;"></canvas>`;
+                        break;
+                    case 'svg':
+                        html += `<div style="background:#f4f4f6; padding:10px; border-radius:12px;">${escapeHtml(innerRaw)}</div>`;
                         break;
                     default:
                         return { error: `Неизвестная команда: c.${tagName}`, line: this.getLineFromPos(tagStart) };
@@ -401,7 +537,6 @@
         } else {
             renderDiv.innerHTML = result.html;
             // НИКАКОГО АВТОМАТИЧЕСКОГО alert НА КНОПКИ НЕ ВЕШАЕМ
-            // Кнопки теперь совсем ничего не делают без JavaScript
         }
     }
 
@@ -411,6 +546,17 @@
 <c.text> Напиши своё имя в поле ниже: </c.text>
 <c.input> Твоё имя... </c.input>
 <c.button> Поздороваться </c.button>
+
+<c.grid>
+  <c.card>
+    <c.badge> Пример карточки </c.badge>
+    <c.text> Здесь может быть любой контент </c.text>
+  </c.card>
+  <c.card>
+    <c.image> https://picsum.photos/200/150 | случайное фото </c.image>
+    <c.link> https://example.com | Подробнее </c.link>
+  </c.card>
+</c.grid>
 
 <c.script>
   let поле = document.querySelector('#render input')
@@ -426,6 +572,7 @@
   })
 </c.script>
 </CCURSED-CODING>`;
+        updateLineNumbers();
         executeCRS();
     }
 
@@ -438,7 +585,7 @@
     document.getElementById('exampleBtn').addEventListener('click', loadExample);
     document.getElementById('clearBtn').addEventListener('click', clearOutput);
     
-    // Загружаем пример при старте
+    syncScroll();
     loadExample();
 </script>
 </body>
