@@ -414,7 +414,7 @@
         if (rendered && rendered.html !== undefined) {
             renderDiv.innerHTML = rendered.html;
             
-            // Принудительно запускаем все скрипты
+            // Принудительно запускаем все скрипты и УДАЛЯЕМ старые обработчики
             setTimeout(() => {
                 const scripts = renderDiv.querySelectorAll('script');
                 scripts.forEach(oldScript => {
@@ -422,7 +422,14 @@
                     newScript.textContent = oldScript.textContent;
                     oldScript.parentNode.replaceChild(newScript, oldScript);
                 });
-            }, 50);
+                
+                // Очищаем старые обработчики у кнопок
+                const btns = renderDiv.querySelectorAll('.crs-btn');
+                btns.forEach(btn => {
+                    const newBtn = btn.cloneNode(true);
+                    btn.parentNode.replaceChild(newBtn, btn);
+                });
+            }, 10);
             
             return true;
         } else {
@@ -440,20 +447,19 @@
 <c.button> Поздороваться <cc.button>
 
 <c.script>
-  // Ждём, пока всё отрисуется
-  setTimeout(function() {
-    const btn = document.querySelector('.crs-btn');
-    const inp = document.querySelector('.crs-input');
-    
-    btn.onclick = function() {
-      const name = inp.value;
-      if (name && name.trim() !== '') {
-        alert('Привет, ' + name.trim() + '!');
-      } else {
-        alert('Введите имя!');
-      }
-    };
-  }, 100);
+  // Находим кнопку и поле
+  let btn = document.querySelector('.crs-btn');
+  let inp = document.querySelector('.crs-input');
+  
+  // Вешаем обработчик
+  btn.onclick = function() {
+    let name = inp.value;
+    if (name && name.trim() !== '') {
+      alert('Привет, ' + name.trim() + '!');
+    } else {
+      alert('Введите имя!');
+    }
+  };
 <cc.script>
 
 <c.box>
