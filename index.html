@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CRS Language Explorer - РАБОЧАЯ ВЕРСИЯ</title>
+    <title>CRS Language Explorer - ИСПРАВЛЕННЫЙ</title>
     <style>
         * {
             margin: 0;
@@ -186,30 +186,6 @@
             border-radius: 3px;
             font-family: monospace;
         }
-        
-        /* Стили для элементов CRS */
-        .crs-button {
-            background: #4CAF50;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 14px;
-            margin: 5px;
-        }
-        
-        .crs-button:hover {
-            background: #45a049;
-        }
-        
-        .crs-input {
-            padding: 8px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            width: 100%;
-            margin: 5px 0;
-        }
     </style>
 </head>
 <body>
@@ -241,7 +217,7 @@
         </div>
     </div>
     <div class="footnote">
-        CRS Language Explorer — полная поддержка JavaScript и CSS | Кнопки работают!
+        CRS Language Explorer — полная поддержка JavaScript
     </div>
 </div>
 
@@ -287,7 +263,7 @@
     function showError(message, lineNumber) {
         errorPanel.style.display = 'block';
         errorPanel.innerHTML = `❌ ОШИБКА (строка ${lineNumber}): ${escapeHtml(message)}`;
-        renderDiv.innerHTML = `<div style="background:#ffe6e5; padding:20px; color:#b00;">❌ Ошибка: ${escapeHtml(message)} (строка ${lineNumber})</div>`;
+        renderDiv.innerHTML = `<div style="background:#ffe6e5; padding:20px; color:#b00;">❌ Ошибка: ${escapeHtml(message)}</div>`;
     }
 
     function hideError() {
@@ -389,7 +365,7 @@
                 
                 switch (tagName) {
                     case 'button':
-                        resultHtml += `<button class="crs-generated-btn" style="background:#4CAF50; color:white; border:none; padding:8px 16px; margin:5px; border-radius:4px; cursor:pointer;">${escapeHtml(innerRaw.trim()) || 'Кнопка'}</button>`;
+                        resultHtml += `<button class="crs-btn" style="background:#4CAF50; color:white; border:none; padding:8px 16px; margin:5px; border-radius:4px; cursor:pointer;">${escapeHtml(innerRaw.trim()) || 'Кнопка'}</button>`;
                         break;
                     case 'text':
                         resultHtml += `<div style="margin:5px 0;">${escapeHtml(innerRaw)}</div>`;
@@ -398,7 +374,7 @@
                         resultHtml += `<h2 style="margin:10px 0; color:#333;">${escapeHtml(innerRaw)}</h2>`;
                         break;
                     case 'input':
-                        resultHtml += `<input type="text" class="crs-generated-input" placeholder="${escapeHtml(innerRaw.trim())}" style="padding:8px; border:1px solid #ccc; border-radius:4px; margin:5px 0; width:100%; box-sizing:border-box;">`;
+                        resultHtml += `<input type="text" class="crs-input" placeholder="${escapeHtml(innerRaw.trim())}" style="padding:8px; border:1px solid #ccc; border-radius:4px; margin:5px 0; width:100%; box-sizing:border-box;">`;
                         break;
                     case 'box': {
                         const innerParsed = this.parseInnerContent(innerRaw);
@@ -412,11 +388,6 @@
                     case 'script':
                         collectedScripts.push(innerRaw);
                         break;
-                    case 'greet': {
-                        const btnText = escapeHtml(innerRaw.trim()) || 'Поздороваться';
-                        resultHtml += `<button class="greet-btn" style="background:#2196F3; color:white; border:none; padding:8px 16px; margin:5px; border-radius:4px; cursor:pointer;">${btnText}</button>`;
-                        break;
-                    }
                     default:
                         this.setError(`Неизвестная команда: c.${tagName}`, tagStart);
                         return null;
@@ -443,24 +414,15 @@
         if (rendered && rendered.html !== undefined) {
             renderDiv.innerHTML = rendered.html;
             
-            // Запускаем все скрипты
-            const scripts = renderDiv.querySelectorAll('script');
-            scripts.forEach(oldScript => {
-                const newScript = document.createElement('script');
-                newScript.textContent = oldScript.textContent;
-                oldScript.parentNode.replaceChild(newScript, oldScript);
-            });
-            
-            // Обработка для greet кнопок
-            const greetBtns = renderDiv.querySelectorAll('.greet-btn');
-            greetBtns.forEach(btn => {
-                btn.addEventListener('click', () => {
-                    const inputs = renderDiv.querySelectorAll('.crs-generated-input, input');
-                    const input = inputs[0];
-                    const name = input ? input.value : prompt('Введите имя');
-                    alert('Привет, ' + (name && name.trim() ? name.trim() : 'Гость') + '!');
+            // Принудительно запускаем все скрипты
+            setTimeout(() => {
+                const scripts = renderDiv.querySelectorAll('script');
+                scripts.forEach(oldScript => {
+                    const newScript = document.createElement('script');
+                    newScript.textContent = oldScript.textContent;
+                    oldScript.parentNode.replaceChild(newScript, oldScript);
                 });
-            });
+            }, 50);
             
             return true;
         } else {
@@ -474,31 +436,24 @@
 <c.title> 🌟 Добро пожаловать в CRS! <cc.title>
 
 <c.text> 👇 Введи своё имя в поле ниже: <cc.text>
-
 <c.input> Ваше имя <cc.input>
-
-<c.greet> Поздороваться! <cc.greet>
-
-<c.text> 💡 А это пример обычной кнопки с кастомным JS: <cc.text>
-
-<c.button> Нажми меня <cc.button>
+<c.button> Поздороваться <cc.button>
 
 <c.script>
-  // Этот JavaScript выполнится автоматически!
-  const btns = document.querySelectorAll('.crs-generated-btn');
-  const lastBtn = btns[btns.length - 1];
-  
-  lastBtn.addEventListener('click', function() {
-    const allInputs = document.querySelectorAll('.crs-generated-input, input');
-    const input = allInputs[0];
-    const name = input ? input.value : 'Аноним';
+  // Ждём, пока всё отрисуется
+  setTimeout(function() {
+    const btn = document.querySelector('.crs-btn');
+    const inp = document.querySelector('.crs-input');
     
-    if (name && name.trim()) {
-      alert('Привет из CRS скрипта, ' + name.trim() + '!');
-    } else {
-      alert('Пожалуйста, введите имя в поле выше!');
-    }
-  });
+    btn.onclick = function() {
+      const name = inp.value;
+      if (name && name.trim() !== '') {
+        alert('Привет, ' + name.trim() + '!');
+      } else {
+        alert('Введите имя!');
+      }
+    };
+  }, 100);
 <cc.script>
 
 <c.box>
@@ -506,18 +461,7 @@
   <c.text> • Кнопки и инпуты <cc.text>
   <c.text> • Полноценный JavaScript <cc.text>
   <c.text> • CSS стили <cc.text>
-  <c.text> • Вложенные блоки <cc.text>
 <cc.box>
-
-<c.style>
-  .crs-generated-btn:hover {
-    background: #45a049 !important;
-    transform: scale(1.02);
-  }
-  .greet-btn:hover {
-    background: #0b7dda !important;
-  }
-<cc.style>
 </CCURSED-CODING>`;
         
         updateLineNumbers();
@@ -535,11 +479,10 @@
     
     document.getElementById('resetExample').addEventListener('click', () => loadExample());
     document.getElementById('clearOutput').addEventListener('click', () => {
-        renderDiv.innerHTML = `<div style="padding:20px; color:#aaa; text-align:center;">✨ Вывод очищен. Нажмите "ЗАПУСТИТЬ" или "ПРИМЕР" ✨</div>`;
+        renderDiv.innerHTML = `<div style="padding:20px; color:#aaa; text-align:center;">✨ Очищено ✨</div>`;
         hideError();
     });
     
-    // Инициализация
     loadExample();
     syncScroll();
     updateLineNumbers();
