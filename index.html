@@ -362,7 +362,8 @@
                 
                 switch (tagName) {
                     case 'button':
-                        resultHtml += `<button style="background:#eef; border:1px solid #88a; padding:5px 12px; margin:3px; cursor:pointer;">${escapeHtml(innerRaw.trim())}</button>`;
+                        // Добавляем атрибут data-has-js="false" для кнопок без JS
+                        resultHtml += `<button style="background:#eef; border:1px solid #88a; padding:5px 12px; margin:3px; cursor:pointer;" data-has-js="false">${escapeHtml(innerRaw.trim())}</button>`;
                         break;
                     case 'text':
                         resultHtml += `<div>${escapeHtml(innerRaw)}</div>`;
@@ -528,11 +529,16 @@
         }
         if (rendered && rendered.html !== undefined) {
             renderDiv.innerHTML = rendered.html;
+            // Находим все кнопки в рендер-области
             const btns = renderDiv.querySelectorAll('button');
             btns.forEach(btn => {
                 if (!btn.hasAttribute('data-crs-evt')) {
                     btn.setAttribute('data-crs-evt', '1');
-                    btn.addEventListener('click', () => alert(btn.innerText.trim()));
+                    // Проверяем, есть ли у кнопки атрибут data-has-js="true"
+                    // Если атрибут отсутствует или равен "false", то обработчик не вешаем
+                    if (btn.getAttribute('data-has-js') === 'true') {
+                        btn.addEventListener('click', () => alert(btn.innerText.trim()));
+                    }
                 }
             });
             return true;
@@ -602,6 +608,9 @@
 
 <c.script>
   console.log("CRS загружен");
+  // JavaScript может динамически менять атрибут data-has-js у кнопок
+  // Например, чтобы активировать кнопку:
+  // document.querySelectorAll('button').forEach(btn => btn.setAttribute('data-has-js', 'true'));
 <cc.script>
 </CCURSED-CODING>`;
         updateLineNumbers();
