@@ -362,8 +362,7 @@
                 
                 switch (tagName) {
                     case 'button':
-                        // Добавляем атрибут data-has-js="false" для кнопок без JS
-                        resultHtml += `<button style="background:#eef; border:1px solid #88a; padding:5px 12px; margin:3px; cursor:pointer;" data-has-js="false">${escapeHtml(innerRaw.trim())}</button>`;
+                        resultHtml += `<button style="background:#eef; border:1px solid #88a; padding:5px 12px; margin:3px; cursor:pointer;">${escapeHtml(innerRaw.trim())}</button>`;
                         break;
                     case 'text':
                         resultHtml += `<div>${escapeHtml(innerRaw)}</div>`;
@@ -529,18 +528,17 @@
         }
         if (rendered && rendered.html !== undefined) {
             renderDiv.innerHTML = rendered.html;
-            // Находим все кнопки в рендер-области
-            const btns = renderDiv.querySelectorAll('button');
-            btns.forEach(btn => {
-                if (!btn.hasAttribute('data-crs-evt')) {
-                    btn.setAttribute('data-crs-evt', '1');
-                    // Проверяем, есть ли у кнопки атрибут data-has-js="true"
-                    // Если атрибут отсутствует или равен "false", то обработчик не вешаем
-                    if (btn.getAttribute('data-has-js') === 'true') {
-                        btn.addEventListener('click', () => alert(btn.innerText.trim()));
-                    }
-                }
-            });
+            
+            // ПРИНУДИТЕЛЬНОЕ ВЫПОЛНЕНИЕ СКРИПТОВ - ИСПРАВЛЕНИЕ!
+            setTimeout(function() {
+                var allScripts = renderDiv.querySelectorAll('script');
+                allScripts.forEach(function(oldScript) {
+                    var newScript = document.createElement('script');
+                    newScript.textContent = oldScript.textContent;
+                    oldScript.parentNode.replaceChild(newScript, oldScript);
+                });
+            }, 50);
+            
             return true;
         } else {
             showError("Ошибка трансляции", 1);
@@ -551,71 +549,30 @@
     function loadExample() {
         editor.value = `<CURSED-CODING>
 <c.title> CRS язык программирования <cc.title>
-<c.text> Примеры использования команд: <cc.text>
+<c.text> Пример с кнопкой и инпутом: <cc.text>
 
-<c.box>
-  <c.button> Нажми меня <cc.button>
-  <c.button> Ещё кнопка <cc.button>
-  <c.badge> Новинка <cc.badge>
-<cc.box>
-
-<c.grid>
-  <c.card>
-    <c.text> Первая карточка <cc.text>
-    <c.button> Кнопка <cc.button>
-  <cc.card>
-  <c.card>
-    <c.text> Вторая карточка со ссылкой: <cc.text>
-    <c.link> https://ya.ru | Яндекс <cc.link>
-  <cc.card>
-  <c.card>
-    <c.text> Третья карточка <cc.text>
-  <cc.card>
-<cc.grid>
-
-<c.input> Введите текст <cc.input>
-<c.select> Опция 1, Опция 2, Опция 3 <cc.select>
-<c.checkbox> Согласен с условиями <cc.checkbox>
-<c.range> 50 <cc.range>
-<c.textarea> Введите описание <cc.textarea>
-
-<c.details>
-  <c.summary> Подробнее о синтаксисе <cc.summary>
-  <c.text> Команды пишутся так: <cc.text>
-  <c.code> &lt;c.button&gt;текст&lt;cc.button&gt; <cc.code>
-  <c.code> &lt;c.text&gt;текст&lt;cc.text&gt; <cc.code>
-  <c.code> &lt;c.link&gt;url | текст&lt;cc.link&gt; <cc.code>
-<cc.details>
-
-<c.alert> Это важное уведомление <cc.alert>
-<c.progress> 75 <cc.progress>
-
-<c.flex>
-  <c.badge> Быстро <cc.badge>
-  <c.badge> Просто <cc.badge>
-  <c.badge> Удобно <cc.badge>
-<cc.flex>
-
-<c.hr />
-<c.center>
-  <c.text> CRS Language Explorer <cc.text>
-<cc.center>
-
-<c.style>
-  button { background: #d4e0ff; border-radius: 20px; padding: 6px 16px; margin: 4px; border: none; cursor: pointer; }
-  button:hover { background: #c0d0ec; }
-<cc.style>
+<c.input> Введите ваше имя <cc.input>
+<c.button> Поздороваться <cc.button>
 
 <c.script>
-  console.log("CRS загружен");
-  // JavaScript может динамически менять атрибут data-has-js у кнопок
-  // Например, чтобы активировать кнопку:
-  // document.querySelectorAll('button').forEach(btn => btn.setAttribute('data-has-js', 'true'));
+  var btn = document.querySelector('#render button');
+  var inp = document.querySelector('#render input');
+  
+  btn.onclick = function() {
+      var name = inp.value;
+      if (name && name.trim() !== '') {
+          alert('Привет, ' + name.trim() + '!');
+      } else {
+          alert('Сначала введите имя!');
+      }
+  };
 <cc.script>
+
+<c.text> Попробуй ввести имя и нажать на кнопку! <cc.text>
 </CCURSED-CODING>`;
         updateLineNumbers();
         hideError();
-        renderDiv.innerHTML = `<div style="padding:20px; color:#666;">Пример загружен. Нажмите "ЗАПУСТИТЬ".</div>`;
+        executeCRS(editor.value);
     }
     
     document.getElementById('runBtn').addEventListener('click', () => {
