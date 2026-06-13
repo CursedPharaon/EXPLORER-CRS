@@ -2,195 +2,43 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>CRS Explorer — полная версия</title>
+    <title>CRS Explorer</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            background: #e8ecf2;
-            font-family: -apple-system, 'Segoe UI', monospace;
-            padding: 20px;
-            min-height: 100vh;
-        }
-
-        .explorer {
-            max-width: 1400px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 28px;
-            overflow: hidden;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-            border: 1px solid #c6c6c8;
-        }
-
-        .header {
-            background: #f2f2f6;
-            padding: 14px 18px;
-            border-bottom: 1px solid #c6c6c8;
-            font-weight: 600;
-            font-size: 1.1rem;
-            display: flex;
-            justify-content: space-between;
-        }
-
-        .editor-container {
-            display: flex;
-            border-bottom: 1px solid #c6c6c8;
-        }
-
-        .line-numbers {
-            background: #f2f2f6;
-            padding: 16px 8px;
-            text-align: right;
-            font-family: 'Courier New', monospace;
-            font-size: 14px;
-            line-height: 1.5;
-            color: #8e8e93;
-            border-right: 1px solid #c6c6c8;
-            user-select: none;
-            min-width: 50px;
-        }
-
-        .line-numbers div {
-            white-space: pre;
-        }
-
-        textarea {
-            width: 100%;
-            font-family: 'Courier New', monospace;
-            font-size: 14px;
-            padding: 16px;
-            border: none;
-            background: #fefef7;
-            line-height: 1.5;
-            min-height: 350px;
-            resize: vertical;
-            outline: none;
-        }
-
-        .toolbar {
-            background: #f2f2f6;
-            padding: 12px 16px;
-            border-bottom: 1px solid #c6c6c8;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-        }
-
-        .tool-btn {
-            background: white;
-            border: 0.5px solid #8e8e93;
-            border-radius: 24px;
-            padding: 8px 18px;
-            font-family: monospace;
-            font-weight: 500;
-            font-size: 14px;
-            color: #007aff;
-            cursor: pointer;
-        }
-
-        .tool-btn:active {
-            background: #e5e5ea;
-            transform: scale(0.96);
-        }
-
-        .output-area {
-            padding: 16px;
-            background: #f9fafb;
-        }
-
-        .output-label {
-            font-weight: 600;
-            font-size: 0.8rem;
-            margin-bottom: 10px;
-            color: #3a3a3e;
-        }
-
-        .render {
-            background: white;
-            border-radius: 20px;
-            padding: 16px;
-            min-height: 250px;
-            border: 1px solid #e5e5ea;
-        }
-
-        .error {
-            background: #ffe6e5;
-            border-left: 4px solid #ff3b30;
-            padding: 12px;
-            font-family: monospace;
-            font-size: 13px;
-            margin-top: 12px;
-            border-radius: 14px;
-            display: none;
-        }
-
-        .footer {
-            font-size: 11px;
-            text-align: center;
-            padding: 12px;
-            color: #8e8e93;
-            background: #f2f2f6;
-        }
+        body { background: #e8ecf2; font-family: monospace; padding: 20px; }
+        .container { max-width: 1200px; margin: 0 auto; background: white; border: 1px solid #aaa; }
+        .header { background: #d9dfe8; padding: 10px; border-bottom: 1px solid #aaa; font-weight: bold; }
+        .workspace { display: flex; }
+        .editor-panel { flex: 1; border-right: 1px solid #aaa; }
+        textarea { width: 100%; height: 400px; font-family: monospace; padding: 10px; border: none; }
+        .button-bar { padding: 10px; background: #eef2f7; border-top: 1px solid #aaa; }
+        button { background: #e0e5ec; border: 1px solid #8a9cb0; padding: 6px 16px; cursor: pointer; }
+        .output-panel { flex: 1; }
+        .render-area { padding: 16px; min-height: 400px; }
+        .error-box { background: #ffe6e5; padding: 10px; color: #b00; display: none; margin: 10px; }
     </style>
 </head>
 <body>
-<div class="explorer">
-    <div class="header">
-        <span>📱 CRS Explorer — полная версия</span>
-        <span style="font-size:12px;">&lt;CURSED-CODING&gt; ... &lt;/CCURSED-CODING&gt;</span>
-    </div>
-
-    <div class="editor-container">
-        <div class="line-numbers" id="lineNumbers"></div>
-        <textarea id="crsCode" placeholder="Пишите CRS код..."></textarea>
-    </div>
-
-    <div class="toolbar">
-        <button class="tool-btn" id="runBtn">▶ ЗАПУСТИТЬ</button>
-        <button class="tool-btn" id="exampleBtn">📋 ПРИМЕР</button>
-        <button class="tool-btn" id="clearBtn">🗑 ОЧИСТИТЬ ВЫВОД</button>
-    </div>
-
-    <div class="output-area">
-        <div class="output-label">📺 РЕЗУЛЬТАТ</div>
-        <div id="render" class="render">✨ Нажмите «ЗАПУСТИТЬ»</div>
-        <div id="errorPanel" class="error"></div>
-    </div>
-    <div class="footer">
-        ⚡ Кнопки &lt;c.button&gt; ничего не делают без JavaScript | 50+ команд
+<div class="container">
+    <div class="header">CRS LANGUAGE EXPLORER | &lt;CURSED-CODING&gt; ... &lt;/CCURSED-CODING&gt;</div>
+    <div class="workspace">
+        <div class="editor-panel">
+            <textarea id="code"></textarea>
+            <div class="button-bar">
+                <button id="run">ЗАПУСТИТЬ</button>
+                <button id="example">ПРИМЕР</button>
+            </div>
+        </div>
+        <div class="output-panel">
+            <div id="error" class="error-box"></div>
+            <div id="render" class="render-area"></div>
+        </div>
     </div>
 </div>
 
 <script>
-    const editor = document.getElementById('crsCode');
+    const editor = document.getElementById('code');
     const renderDiv = document.getElementById('render');
-    const errorPanel = document.getElementById('errorPanel');
-    const lineNumbersDiv = document.getElementById('lineNumbers');
-
-    function updateLineNumbers() {
-        const code = editor.value;
-        const lines = code.split(/\r?\n/);
-        let numbersHtml = '';
-        for (let i = 1; i <= lines.length; i++) {
-            numbersHtml += `<div>${i}</div>`;
-        }
-        lineNumbersDiv.innerHTML = numbersHtml;
-    }
-
-    function syncScroll() {
-        editor.addEventListener('scroll', function() {
-            lineNumbersDiv.scrollTop = editor.scrollTop;
-        });
-    }
-
-    editor.addEventListener('input', updateLineNumbers);
-    editor.addEventListener('keydown', updateLineNumbers);
+    const errorDiv = document.getElementById('error');
 
     function escapeHtml(str) {
         if (!str) return "";
@@ -203,389 +51,185 @@
     }
 
     function showError(msg, line) {
-        errorPanel.style.display = 'block';
-        errorPanel.innerHTML = `⚠️ Ошибка (строка ${line}): ${escapeHtml(msg)}`;
-        renderDiv.innerHTML = `<div style="color:#b00;">❌ ${escapeHtml(msg)} (строка ${line})</div>`;
+        errorDiv.style.display = 'block';
+        errorDiv.innerHTML = `Ошибка (строка ${line}): ${escapeHtml(msg)}`;
+        renderDiv.innerHTML = `<div style="color:#b00;">Ошибка: ${escapeHtml(msg)} (строка ${line})</div>`;
     }
 
-    function hideError() {
-        errorPanel.style.display = 'none';
+    function hideError() { errorDiv.style.display = 'none'; }
+
+    function parseCRS(source) {
+        const lines = source.split(/\r?\n/);
+        const openTag = "<CURSED-CODING>";
+        const closeTag = "</CCURSED-CODING>";
+        
+        let openIdx = source.indexOf(openTag);
+        let closeIdx = source.indexOf(closeTag);
+        
+        if (openIdx === -1) return { error: "Нет <CURSED-CODING>", line: 1 };
+        if (closeIdx === -1) return { error: "Нет </CCURSED-CODING>", line: lines.length };
+        
+        let inner = source.substring(openIdx + openTag.length, closeIdx);
+        if (inner.trim() === "") return { error: "Код пуст", line: openIdx };
+        
+        return parseInner(inner, lines);
     }
-
-    class CRSParser {
-        constructor(src) {
-            this.src = src;
-            this.lines = src.split(/\r?\n/);
-        }
-
-        getLineFromPos(pos) {
+    
+    function parseInner(content, originalLines) {
+        let result = "";
+        let styles = [];
+        let scripts = [];
+        let i = 0;
+        const len = content.length;
+        
+        function getLine(pos) {
             let line = 1, p = 0;
-            for (let l of this.lines) {
-                if (pos <= p + l.length) return line;
-                p += l.length + 1;
+            for (let j = 0; j < originalLines.length; j++) {
+                if (pos <= p + originalLines[j].length) return line;
+                p += originalLines[j].length + 1;
                 line++;
             }
             return line;
         }
-
-        parse() {
-            const openTag = "<CURSED-CODING>";
-            const closeTag = "</CCURSED-CODING>";
-            const src = this.src;
-            
-            const openIdx = src.indexOf(openTag);
-            const closeIdx = src.indexOf(closeTag);
-            
-            if (openIdx === -1) {
-                return { error: "Отсутствует <CURSED-CODING>", line: 1 };
-            }
-            if (closeIdx === -1 || closeIdx < openIdx) {
-                return { error: "Отсутствует </CCURSED-CODING>", line: this.lines.length };
-            }
-            
-            const inner = src.substring(openIdx + openTag.length, closeIdx);
-            if (inner.trim() === "") {
-                return { error: "Код пуст", line: this.getLineFromPos(openIdx + openTag.length) };
-            }
-            
-            return this.parseInner(inner);
+        
+        function findClose(start, tag) {
+            let regex = new RegExp(`<cc\\.${tag}>`, 'i');
+            let slice = content.substring(start);
+            let match = slice.match(regex);
+            if (!match) return null;
+            let closeStart = start + match.index;
+            let innerVal = content.substring(start, closeStart);
+            let next = closeStart + match[0].length;
+            return { inner: innerVal, next: next };
         }
-
-        parseInner(content) {
-            let html = '';
-            let styles = [];
-            let scripts = [];
-            let i = 0;
-            const len = content.length;
-
-            const findCloseTag = (startPos, tagName) => {
-                const closeRegex = new RegExp(`<cc\\.${tagName}>`, 'i');
-                const slice = content.substring(startPos);
-                const match = slice.match(closeRegex);
-                if (!match) {
-                    return null;
-                }
-                const closeStart = startPos + match.index;
-                const innerVal = content.substring(startPos, closeStart);
-                const nextPos = closeStart + match[0].length;
-                return { inner: innerVal, next: nextPos };
-            };
-
-            while (i < len) {
-                const openMatch = content.substring(i).match(/<c\.([a-zA-Z]+)>/);
-                if (!openMatch) {
-                    const rest = content.substring(i);
-                    if (rest.trim().length > 0) {
-                        html += escapeHtml(rest);
-                    }
+        
+        while (i < len) {
+            let openMatch = content.substring(i).match(/<c\.([a-zA-Z]+)>/);
+            if (!openMatch) {
+                let rest = content.substring(i);
+                if (rest.trim()) result += escapeHtml(rest);
+                break;
+            }
+            
+            let tag = openMatch[1].toLowerCase();
+            let tagStart = i + openMatch.index;
+            let innerStart = tagStart + openMatch[0].length;
+            
+            let closed = findClose(innerStart, tag);
+            if (!closed) return { error: `Нет закрывающего <cc.${tag}>`, line: getLine(tagStart) };
+            
+            let innerRaw = closed.inner;
+            let nextIdx = closed.next;
+            
+            switch (tag) {
+                case 'button':
+                    result += `<button style="background:#eef; border:1px solid #88a; padding:6px 16px; margin:4px; cursor:pointer;" data-has-js="false">${escapeHtml(innerRaw.trim()) || 'Кнопка'}</button>`;
+                    break;
+                case 'text':
+                    result += `<div>${escapeHtml(innerRaw)}</div>`;
+                    break;
+                case 'title':
+                    result += `<h2>${escapeHtml(innerRaw)}</h2>`;
+                    break;
+                case 'box': {
+                    let innerParsed = parseInner(innerRaw, originalLines);
+                    if (innerParsed.error) return innerParsed;
+                    result += `<div style="border:1px solid #ccc; padding:12px; margin:8px 0;">${innerParsed.html}</div>`;
                     break;
                 }
-
-                const tagName = openMatch[1].toLowerCase();
-                const fullTag = openMatch[0];
-                const tagStart = i + openMatch.index;
-                const innerStart = tagStart + fullTag.length;
-
-                const closed = findCloseTag(innerStart, tagName);
-                if (!closed) {
-                    return { error: `Нет закрывающего <cc.${tagName}>`, line: this.getLineFromPos(tagStart) };
+                case 'input':
+                    result += `<input type="text" placeholder="${escapeHtml(innerRaw.trim())}" style="padding:5px; margin:4px 0; width:200px;">`;
+                    break;
+                case 'link': {
+                    let parts = innerRaw.split('|');
+                    let url = parts[0]?.trim() || '#';
+                    let text = parts[1]?.trim() || innerRaw.trim();
+                    result += `<a href="${escapeHtml(url)}" target="_blank">${escapeHtml(text)}</a>`;
+                    break;
                 }
-
-                const innerRaw = closed.inner;
-                const nextIdx = closed.next;
-
-                switch (tagName) {
-                    case 'button':
-                        html += `<button class="crs-button">${escapeHtml(innerRaw.trim() || 'Кнопка')}</button>`;
-                        break;
-                    case 'text':
-                        html += `<div class="crs-text">${escapeHtml(innerRaw)}</div>`;
-                        break;
-                    case 'title':
-                        html += `<h2>${escapeHtml(innerRaw)}</h2>`;
-                        break;
-                    case 'box': {
-                        const subResult = this.parseInner(innerRaw);
-                        if (subResult.error) return subResult;
-                        html += `<div style="border:1px solid #ccc; border-radius:16px; padding:14px; margin:12px 0;">${subResult.html}</div>`;
-                        break;
-                    }
-                    case 'input':
-                        html += `<input type="text" placeholder="${escapeHtml(innerRaw.trim())}" style="padding:8px; border:1px solid #ccc; border-radius:12px; width:100%; margin:4px 0;">`;
-                        break;
-                    case 'link': {
-                        const parts = innerRaw.split('|');
-                        const url = parts[0]?.trim() || '#';
-                        const text = parts[1]?.trim() || innerRaw.trim();
-                        html += `<a href="${escapeHtml(url)}" target="_blank" style="color:#007aff;">${escapeHtml(text)}</a>`;
-                        break;
-                    }
-                    case 'image': {
-                        const parts = innerRaw.split('|');
-                        const src = parts[0]?.trim() || '';
-                        const alt = parts[1]?.trim() || 'image';
-                        html += `<img src="${escapeHtml(src)}" alt="${escapeHtml(alt)}" style="max-width:100%; border-radius:12px;">`;
-                        break;
-                    }
-                    case 'style':
-                        styles.push(innerRaw);
-                        break;
-                    case 'script':
-                        scripts.push(innerRaw);
-                        break;
-                    case 'html':
-                        html += innerRaw;
-                        break;
-                    case 'badge':
-                        html += `<span style="background:#e5e5ea; padding:4px 12px; border-radius:40px; font-size:0.75rem;">${escapeHtml(innerRaw)}</span>`;
-                        break;
-                    case 'grid': {
-                        const subResult = this.parseInner(innerRaw);
-                        if (subResult.error) return subResult;
-                        html += `<div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:12px;">${subResult.html}</div>`;
-                        break;
-                    }
-                    case 'card': {
-                        const subResult = this.parseInner(innerRaw);
-                        if (subResult.error) return subResult;
-                        html += `<div style="background:white; border:1px solid #e5e5ea; border-radius:20px; padding:14px;">${subResult.html}</div>`;
-                        break;
-                    }
-                    case 'flex': {
-                        const subResult = this.parseInner(innerRaw);
-                        if (subResult.error) return subResult;
-                        html += `<div style="display:flex; flex-wrap:wrap; gap:12px;">${subResult.html}</div>`;
-                        break;
-                    }
-                    case 'list': {
-                        const subResult = this.parseInner(innerRaw);
-                        if (subResult.error) return subResult;
-                        html += `<ul style="margin:8px 0 8px 20px;">${subResult.html}</ul>`;
-                        break;
-                    }
-                    case 'item': {
-                        const subResult = this.parseInner(innerRaw);
-                        if (subResult.error) return subResult;
-                        html += `<li>${subResult.html}</li>`;
-                        break;
-                    }
-                    case 'select': {
-                        const options = innerRaw.split(',').map(opt => `<option>${escapeHtml(opt.trim())}</option>`).join('');
-                        html += `<select style="padding:8px; border-radius:12px;">${options}</select>`;
-                        break;
-                    }
-                    case 'checkbox':
-                        html += `<label><input type="checkbox"> ${escapeHtml(innerRaw)}</label><br>`;
-                        break;
-                    case 'radio':
-                        html += `<label><input type="radio" name="crs_radio"> ${escapeHtml(innerRaw)}</label> `;
-                        break;
-                    case 'range':
-                        html += `<input type="range" min="0" max="100" value="${escapeHtml(innerRaw) || 50}">`;
-                        break;
-                    case 'textarea':
-                        html += `<textarea rows="3" placeholder="${escapeHtml(innerRaw)}" style="width:100%; border-radius:12px; padding:8px;"></textarea>`;
-                        break;
-                    case 'hr':
-                        html += `<hr style="margin:12px 0;">`;
-                        break;
-                    case 'center': {
-                        const subResult = this.parseInner(innerRaw);
-                        if (subResult.error) return subResult;
-                        html += `<div style="text-align:center;">${subResult.html}</div>`;
-                        break;
-                    }
-                    case 'code':
-                        html += `<code style="background:#f0f0f0; padding:4px 8px; border-radius:8px;">${escapeHtml(innerRaw)}</code>`;
-                        break;
-                    case 'alert':
-                        html += `<div style="background:#fff3cd; border-left:4px solid #ffc107; padding:10px; margin:8px 0;">${escapeHtml(innerRaw)}</div>`;
-                        break;
-                    case 'progress':
-                        const val = parseFloat(innerRaw) || 0;
-                        html += `<progress value="${Math.min(100, Math.max(0, val))}" max="100" style="width:100%;"></progress>`;
-                        break;
-                    case 'details': {
-                        const subResult = this.parseInner(innerRaw);
-                        if (subResult.error) return subResult;
-                        html += `<details style="margin:8px 0;"><summary>подробнее</summary><div style="margin-top:8px;">${subResult.html}</div></details>`;
-                        break;
-                    }
-                    case 'summary':
-                        html += `<summary style="cursor:pointer; font-weight:bold;">${escapeHtml(innerRaw)}</summary>`;
-                        break;
-                    case 'mark':
-                        html += `<mark style="background:#ffecb3; padding:2px 4px;">${escapeHtml(innerRaw)}</mark>`;
-                        break;
-                    case 'icon':
-                        html += `<span style="font-size:1.2rem;">${escapeHtml(innerRaw)}</span>`;
-                        break;
-                    case 'spacer':
-                        const h = parseInt(innerRaw) || 16;
-                        html += `<div style="height:${h}px;"></div>`;
-                        break;
-                    case 'tooltip':
-                        html += `<span title="${escapeHtml(innerRaw)}" style="border-bottom:1px dotted #888; cursor:help;">${escapeHtml(innerRaw.substring(0,20))}</span>`;
-                        break;
-                    case 'modal': {
-                        const subResult = this.parseInner(innerRaw);
-                        if (subResult.error) return subResult;
-                        html += `<div style="background:#fff; border:2px solid #aaa; border-radius:12px; padding:14px; margin:12px 0;">${subResult.html}</div>`;
-                        break;
-                    }
-                    case 'nav': {
-                        const subResult = this.parseInner(innerRaw);
-                        if (subResult.error) return subResult;
-                        html += `<nav style="display:flex; gap:15px; background:#f2f2f6; padding:10px; border-radius:20px;">${subResult.html}</nav>`;
-                        break;
-                    }
-                    case 'footer': {
-                        const subResult = this.parseInner(innerRaw);
-                        if (subResult.error) return subResult;
-                        html += `<footer style="border-top:1px solid #ccc; margin-top:16px; padding:12px; font-size:0.8rem;">${subResult.html}</footer>`;
-                        break;
-                    }
-                    case 'header': {
-                        const subResult = this.parseInner(innerRaw);
-                        if (subResult.error) return subResult;
-                        html += `<header style="background:#f2f2f6; padding:12px; border-radius:16px; margin-bottom:12px;">${subResult.html}</header>`;
-                        break;
-                    }
-                    case 'section': {
-                        const subResult = this.parseInner(innerRaw);
-                        if (subResult.error) return subResult;
-                        html += `<section style="margin:16px 0;">${subResult.html}</section>`;
-                        break;
-                    }
-                    case 'article': {
-                        const subResult = this.parseInner(innerRaw);
-                        if (subResult.error) return subResult;
-                        html += `<article style="border-left:3px solid #007aff; padding-left:16px; margin:12px 0;">${subResult.html}</article>`;
-                        break;
-                    }
-                    case 'aside': {
-                        const subResult = this.parseInner(innerRaw);
-                        if (subResult.error) return subResult;
-                        html += `<aside style="background:#f2f2f6; padding:12px; border-radius:16px;">${subResult.html}</aside>`;
-                        break;
-                    }
-                    case 'figure': {
-                        const subResult = this.parseInner(innerRaw);
-                        if (subResult.error) return subResult;
-                        html += `<figure style="margin:12px 0;">${subResult.html}</figure>`;
-                        break;
-                    }
-                    case 'figcaption':
-                        html += `<figcaption style="font-size:0.75rem; text-align:center;">${escapeHtml(innerRaw)}</figcaption>`;
-                        break;
-                    case 'blockquote': {
-                        const subResult = this.parseInner(innerRaw);
-                        if (subResult.error) return subResult;
-                        html += `<blockquote style="border-left:4px solid #ccc; padding-left:16px; margin:12px 0; color:#555;">${subResult.html}</blockquote>`;
-                        break;
-                    }
-                    case 'strong':
-                        html += `<strong>${escapeHtml(innerRaw)}</strong>`;
-                        break;
-                    case 'em':
-                        html += `<em>${escapeHtml(innerRaw)}</em>`;
-                        break;
-                    case 'small':
-                        html += `<small>${escapeHtml(innerRaw)}</small>`;
-                        break;
-                    case 'video':
-                        html += `<video controls style="width:100%; max-width:400px; border-radius:12px;"><source src="${escapeHtml(innerRaw)}" type="video/mp4"></video>`;
-                        break;
-                    case 'audio':
-                        html += `<audio controls src="${escapeHtml(innerRaw)}"></audio>`;
-                        break;
-                    case 'iframe':
-                        html += `<iframe src="${escapeHtml(innerRaw)}" style="width:100%; height:200px; border:1px solid #ccc; border-radius:12px;"></iframe>`;
-                        break;
-                    case 'canvas':
-                        html += `<canvas style="border:1px solid #ccc; background:#f9f9f9; width:100%; height:150px; border-radius:12px;"></canvas>`;
-                        break;
-                    case 'svg':
-                        html += `<div style="background:#f4f4f6; padding:10px; border-radius:12px;">${escapeHtml(innerRaw)}</div>`;
-                        break;
-                    default:
-                        return { error: `Неизвестная команда: c.${tagName}`, line: this.getLineFromPos(tagStart) };
+                case 'style':
+                    styles.push(innerRaw);
+                    break;
+                case 'script':
+                    scripts.push(innerRaw);
+                    break;
+                case 'badge':
+                    result += `<span style="background:#d4e0ec; padding:2px 8px; border-radius:20px;">${escapeHtml(innerRaw)}</span>`;
+                    break;
+                case 'select': {
+                    let opts = innerRaw.split(',').map(s => `<option>${escapeHtml(s.trim())}</option>`).join('');
+                    result += `<select style="padding:5px;">${opts}</select>`;
+                    break;
                 }
-                i = nextIdx;
+                case 'checkbox':
+                    result += `<label><input type="checkbox"> ${escapeHtml(innerRaw)}</label><br>`;
+                    break;
+                case 'range':
+                    result += `<input type="range" min="0" max="100" value="${escapeHtml(innerRaw) || 50}">`;
+                    break;
+                case 'textarea':
+                    result += `<textarea rows="3" style="width:100%;" placeholder="${escapeHtml(innerRaw)}"></textarea>`;
+                    break;
+                case 'hr':
+                    result += `<hr>`;
+                    break;
+                case 'center': {
+                    let innerParsed = parseInner(innerRaw, originalLines);
+                    if (innerParsed.error) return innerParsed;
+                    result += `<div style="text-align:center;">${innerParsed.html}</div>`;
+                    break;
+                }
+                case 'code':
+                    result += `<code style="background:#f0f0f0; padding:2px 5px;">${escapeHtml(innerRaw)}</code>`;
+                    break;
+                default:
+                    return { error: `Неизвестная команда: c.${tag}`, line: getLine(tagStart) };
             }
-
-            const styleBlock = styles.length ? `<style>${styles.join('\n')}</style>` : '';
-            const scriptBlock = scripts.length ? `<script>${scripts.join('\n')}<\/script>` : '';
-            return { html: styleBlock + html + scriptBlock };
+            i = nextIdx;
         }
+        
+        let styleBlock = styles.length ? `<style>${styles.join('\n')}</style>` : "";
+        let scriptBlock = scripts.length ? `<script>${scripts.join('\n')}<\/script>` : "";
+        return { html: styleBlock + result + scriptBlock };
     }
-
-    function executeCRS() {
+    
+    function execute() {
         hideError();
-        const code = editor.value;
-        if (!code.trim()) {
+        let src = editor.value;
+        if (!src.trim()) {
             showError("Пустой код", 1);
             return;
         }
-        
-        const parser = new CRSParser(code);
-        const result = parser.parse();
-        
-        if (result.error) {
-            showError(result.error, result.line);
-            renderDiv.innerHTML = `<div style="color:#b00;">❌ Ошибка: ${escapeHtml(result.error)} (строка ${result.line})</div>`;
+        let res = parseCRS(src);
+        if (res.error) {
+            showError(res.error, res.line || 1);
         } else {
-            renderDiv.innerHTML = result.html;
-            // НИКАКОГО АВТОМАТИЧЕСКОГО alert НА КНОПКИ НЕ ВЕШАЕМ
+            renderDiv.innerHTML = res.html;
+            document.querySelectorAll('#render button').forEach(btn => {
+                btn.addEventListener('click', (event) => {
+                    if (btn.getAttribute('data-has-js') === 'true') {
+                        alert(btn.innerText);
+                    }
+                });
+            });
         }
     }
-
+    
     function loadExample() {
         editor.value = `<CURSED-CODING>
-<c.title> Приветственная программа </c.title>
-<c.text> Напиши своё имя в поле ниже: </c.text>
-<c.input> Твоё имя... </c.input>
-<c.button> Поздороваться </c.button>
-
-<c.grid>
-  <c.card>
-    <c.badge> Пример карточки </c.badge>
-    <c.text> Здесь может быть любой контент </c.text>
-  </c.card>
-  <c.card>
-    <c.image> https://picsum.photos/200/150 | случайное фото </c.image>
-    <c.link> https://example.com | Подробнее </c.link>
-  </c.card>
-</c.grid>
-
-<c.script>
-  let поле = document.querySelector('#render input')
-  let кнопка = document.querySelector('#render button')
-  
-  кнопка.addEventListener('click', function() {
-    let имя = поле.value
-    if (имя === "") {
-      alert("Пожалуйста, напиши имя в поле!")
-    } else {
-      alert("Привет, " + имя + "! Добро пожаловать в CRS!")
-    }
-  })
-</c.script>
+<c.title> Тест кнопки <cc.title>
+<c.text> Ниже должна быть кнопка: <cc.text>
+<c.button> НАЖМИ МЕНЯ <cc.button>
+<c.box>
+  <c.text> Ещё одна кнопка внутри блока: <cc.text>
+  <c.button> Кнопка 2 <cc.button>
+<cc.box>
 </CCURSED-CODING>`;
-        updateLineNumbers();
-        executeCRS();
+        execute();
     }
-
-    function clearOutput() {
-        renderDiv.innerHTML = '✨ Вывод очищен';
-        hideError();
-    }
-
-    document.getElementById('runBtn').addEventListener('click', executeCRS);
-    document.getElementById('exampleBtn').addEventListener('click', loadExample);
-    document.getElementById('clearBtn').addEventListener('click', clearOutput);
     
-    syncScroll();
+    document.getElementById('run').addEventListener('click', execute);
+    document.getElementById('example').addEventListener('click', loadExample);
     loadExample();
 </script>
 </body>
