@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CRS Language Explorer - ИСПРАВЛЕННЫЙ</title>
+    <title>CRS Language Explorer</title>
     <style>
         * {
             margin: 0;
@@ -169,6 +169,7 @@
             color: #a00;
             margin: 0 0 8px 0;
             white-space: pre-wrap;
+            display: none;
         }
 
         .footnote {
@@ -186,6 +187,69 @@
             border-radius: 3px;
             font-family: monospace;
         }
+        
+        .crs-btn {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            margin: 5px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        
+        .crs-input {
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            width: 100%;
+            margin: 5px 0;
+            box-sizing: border-box;
+        }
+        
+        .user-panel {
+            background: #eef2f7;
+            padding: 5px 12px;
+            border-bottom: 1px solid #ccc;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .modal-content {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80%;
+            overflow: auto;
+        }
+        
+        .app-item {
+            background: #f0f2f5;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        
+        .app-item:hover {
+            background: #e0e5ec;
+        }
     </style>
 </head>
 <body>
@@ -193,6 +257,11 @@
     <div class="header">
         <div>CRS LANGUAGE EXPLORER</div>
         <span>&lt;CURSED-CODING&gt; ... &lt;/CCURSED-CODING&gt;</span>
+    </div>
+    <div class="user-panel">
+        <span>👤 <span id="currentUser">Гость</span></span>
+        <button id="loginBtn" style="padding:2px 8px;">Войти</button>
+        <button id="registerBtn" style="padding:2px 8px;">Регистрация</button>
     </div>
     <div class="workspace">
         <div class="editor-panel">
@@ -206,49 +275,46 @@
             </div>
             <div class="button-bar">
                 <button id="runBtn">▶ ЗАПУСТИТЬ</button>
+                <button id="saveAppBtn">💾 СОХРАНИТЬ</button>
+                <button id="myAppsBtn">📱 МОИ ПРИЛОЖЕНИЯ</button>
+                <button id="allAppsBtn">🌐 ВСЕ ПРИЛОЖЕНИЯ</button>
                 <button id="resetExample">📋 ПРИМЕР</button>
                 <button id="clearOutput">🗑 ОЧИСТИТЬ</button>
             </div>
         </div>
         <div class="output-panel">
             <div class="output-header">📺 РЕЗУЛЬТАТ</div>
-            <div id="errorPanel" class="error-box" style="display: none;"></div>
+            <div id="errorPanel" class="error-box"></div>
             <div id="renderContainer" class="render-area"></div>
         </div>
     </div>
     <div class="footnote">
-        CRS Language Explorer — полная поддержка JavaScript
+        CRS Language Explorer — создавай и публикуй свои приложения
+    </div>
+</div>
+
+<div id="modal" class="modal">
+    <div class="modal-content">
+        <h3 id="modalTitle">Мои приложения</h3>
+        <div id="modalList"></div>
+        <button id="closeModal">Закрыть</button>
     </div>
 </div>
 
 <script>
-    const editor = document.getElementById('crsCode');
-    const renderDiv = document.getElementById('renderContainer');
-    const errorPanel = document.getElementById('errorPanel');
-    const lineNumbersDiv = document.getElementById('lineNumbers');
-    const lineCountInfo = document.getElementById('lineCountInfo');
-
-    function updateLineNumbers() {
-        const code = editor.value;
-        const lines = code.split(/\r?\n/);
-        const lineCount = lines.length;
-        lineCountInfo.textContent = `строк: ${lineCount}`;
-        
-        let numbersHtml = '';
-        for (let i = 1; i <= lineCount; i++) {
-            numbersHtml += `<div>${i}</div>`;
-        }
-        lineNumbersDiv.innerHTML = numbersHtml;
+    // ============ SUPABASE КОНФИГ ============
+    const SUPABASE_URL = 'https://tmjqafqecjpizawdruzq.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRtanFhZnFlY2pwaXphd2RydXpxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk4OTk2OTYsImV4cCI6MjA5NTQ3NTY5Nn0.8K7i5QEbjYWSvqw78P8RSR_abYM8uCRZbvC9Hp12bac';
+    
+    let currentUser = null;
+    
+    // ============ ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ============
+    function showError(msg) {
+        const errorDiv = document.getElementById('errorPanel');
+        errorDiv.style.display = 'block';
+        errorDiv.innerHTML = `❌ ${escapeHtml(msg)}`;
+        setTimeout(() => { errorDiv.style.display = 'none'; }, 5000);
     }
-
-    function syncScroll() {
-        editor.addEventListener('scroll', function() {
-            lineNumbersDiv.scrollTop = editor.scrollTop;
-        });
-    }
-
-    editor.addEventListener('input', updateLineNumbers);
-    editor.addEventListener('keydown', updateLineNumbers);
     
     function escapeHtml(str) {
         if (!str) return "";
@@ -259,239 +325,287 @@
             return m;
         });
     }
+    
+    // ============ РАБОТА С SUPABASE ============
+    async function supabaseQuery(endpoint, options = {}) {
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/${endpoint}`, {
+            headers: {
+                'apikey': SUPABASE_ANON_KEY,
+                'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                'Content-Type': 'application/json'
+            },
+            ...options
+        });
+        return response;
+    }
+    
+    async function register(username, password) {
+        const response = await supabaseQuery('rpc/register_user', {
+            method: 'POST',
+            body: JSON.stringify({ username, password })
+        });
+        return response.ok;
+    }
+    
+    async function login(username, password) {
+        const response = await supabaseQuery('rpc/login_user', {
+            method: 'POST',
+            body: JSON.stringify({ username, password })
+        });
+        if (response.ok) {
+            const data = await response.json();
+            currentUser = { id: data.user_id, username };
+            localStorage.setItem('crs_session', JSON.stringify(currentUser));
+            document.getElementById('currentUser').innerText = username;
+            return true;
+        }
+        return false;
+    }
+    
+    async function saveApp(title, code) {
+        if (!currentUser) { alert("Сначала войдите в систему"); return false; }
+        const response = await supabaseQuery('crs_apps', {
+            method: 'POST',
+            body: JSON.stringify({
+                title: title,
+                code: code,
+                author_id: currentUser.id,
+                is_public: true
+            })
+        });
+        if (response.ok) alert("Приложение сохранено!");
+        else alert("Ошибка сохранения");
+        return response.ok;
+    }
+    
+    async function getUserApps() {
+        if (!currentUser) return [];
+        const response = await supabaseQuery(`crs_apps?author_id=eq.${currentUser.id}&select=*`);
+        if (response.ok) return await response.json();
+        return [];
+    }
+    
+    async function getAllApps() {
+        const response = await supabaseQuery(`crs_apps?select=*&order=created_at.desc`);
+        if (response.ok) return await response.json();
+        return [];
+    }
+    
+    async function loadApp(id) {
+        const response = await supabaseQuery(`crs_apps?id=eq.${id}&select=*`);
+        if (response.ok) {
+            const apps = await response.json();
+            if (apps.length > 0) {
+                editor.value = apps[0].code;
+                updateLineNumbers();
+                executeCRS(apps[0].code);
+                return true;
+            }
+        }
+        return false;
+    }
+    
+    // ============ CRS ИНТЕРПРЕТАТОР ============
+    const editor = document.getElementById('crsCode');
+    const renderDiv = document.getElementById('renderContainer');
+    const lineNumbersDiv = document.getElementById('lineNumbers');
+    const lineCountInfo = document.getElementById('lineCountInfo');
 
-    function showError(message, lineNumber) {
-        errorPanel.style.display = 'block';
-        errorPanel.innerHTML = `❌ ОШИБКА (строка ${lineNumber}): ${escapeHtml(message)}`;
-        renderDiv.innerHTML = `<div style="background:#ffe6e5; padding:20px; color:#b00;">❌ Ошибка: ${escapeHtml(message)}</div>`;
+    function updateLineNumbers() {
+        const code = editor.value;
+        const lines = code.split(/\r?\n/);
+        const lineCount = lines.length;
+        lineCountInfo.textContent = `строк: ${lineCount}`;
+        let numbersHtml = '';
+        for (let i = 1; i <= lineCount; i++) {
+            numbersHtml += `<div>${i}</div>`;
+        }
+        lineNumbersDiv.innerHTML = numbersHtml;
     }
 
-    function hideError() {
-        errorPanel.style.display = 'none';
-    }
-
-    class CRSParser {
-        constructor(sourceCode) {
-            this.rawSource = sourceCode;
-            this.lines = sourceCode.split(/\r?\n/);
-            this.error = null;
-            this.errorLine = null;
-        }
-
-        findLineNumberByCharPos(charPos) {
-            if (charPos < 0) return 1;
-            let line = 1;
-            let pos = 0;
-            for (let i = 0; i < this.lines.length; i++) {
-                if (charPos <= pos + this.lines[i].length) return line;
-                pos += this.lines[i].length + 1;
-                line++;
-            }
-            return line;
-        }
-
-        setError(msg, charPosition) {
-            this.error = msg;
-            this.errorLine = this.findLineNumberByCharPos(charPosition);
-        }
-
-        parseAndRender() {
-            const openTag = "<CURSED-CODING>";
-            const closeTag = "</CCURSED-CODING>";
-            const src = this.rawSource;
-            
-            const openIdx = src.indexOf(openTag);
-            const closeIdx = src.indexOf(closeTag);
-            
-            if (openIdx === -1) {
-                this.setError("Отсутствует <CURSED-CODING>", 0);
-                return null;
-            }
-            if (closeIdx === -1 || closeIdx < openIdx) {
-                this.setError("Отсутствует </CCURSED-CODING>", src.length);
-                return null;
-            }
-            
-            const inner = src.substring(openIdx + openTag.length, closeIdx);
-            if (inner.trim() === "") {
-                this.setError("Код пуст", openIdx + openTag.length);
-                return null;
-            }
-            
-            return this.parseInnerContent(inner);
-        }
-        
-        parseInnerContent(content) {
-            let collectedStyles = [];
-            let collectedScripts = [];
-            let resultHtml = "";
-            let i = 0;
-            const len = content.length;
-            
-            const findCloseTag = (startPos, tagName) => {
-                const closeRegex = new RegExp(`<cc\\.${tagName}>`, 'i');
-                const slice = content.substring(startPos);
-                const match = slice.match(closeRegex);
-                if (!match) {
-                    this.setError(`Нет закрывающего <cc.${tagName}>`, startPos);
-                    return null;
-                }
-                const closeStart = startPos + match.index;
-                const innerVal = content.substring(startPos, closeStart);
-                const nextPos = closeStart + match[0].length;
-                return { innerVal, nextPos };
-            };
-            
-            while (i < len) {
-                const openMatch = content.substring(i).match(/<c\.([a-zA-Z]+)>/);
-                if (!openMatch) {
-                    const rest = content.substring(i);
-                    if (rest.trim().length > 0) {
-                        resultHtml += `<span style="opacity:0.5;">${escapeHtml(rest)}</span>`;
-                    }
-                    break;
-                }
-                
-                const tagName = openMatch[1].toLowerCase();
-                const fullTag = openMatch[0];
-                const tagStart = i + openMatch.index;
-                const innerStart = tagStart + fullTag.length;
-                
-                const closed = findCloseTag(innerStart, tagName);
-                if (!closed) return null;
-                
-                const innerRaw = closed.innerVal;
-                const nextIdx = closed.nextPos;
-                
-                switch (tagName) {
-                    case 'button':
-                        resultHtml += `<button class="crs-btn" style="background:#4CAF50; color:white; border:none; padding:8px 16px; margin:5px; border-radius:4px; cursor:pointer;">${escapeHtml(innerRaw.trim()) || 'Кнопка'}</button>`;
-                        break;
-                    case 'text':
-                        resultHtml += `<div style="margin:5px 0;">${escapeHtml(innerRaw)}</div>`;
-                        break;
-                    case 'title':
-                        resultHtml += `<h2 style="margin:10px 0; color:#333;">${escapeHtml(innerRaw)}</h2>`;
-                        break;
-                    case 'input':
-                        resultHtml += `<input type="text" class="crs-input" placeholder="${escapeHtml(innerRaw.trim())}" style="padding:8px; border:1px solid #ccc; border-radius:4px; margin:5px 0; width:100%; box-sizing:border-box;">`;
-                        break;
-                    case 'box': {
-                        const innerParsed = this.parseInnerContent(innerRaw);
-                        if (innerParsed === null && this.error) return null;
-                        resultHtml += `<div style="border:1px solid #ddd; padding:12px; margin:8px 0; background:#fafcff; border-radius:6px;">${innerParsed.html}</div>`;
-                        break;
-                    }
-                    case 'style':
-                        collectedStyles.push(innerRaw);
-                        break;
-                    case 'script':
-                        collectedScripts.push(innerRaw);
-                        break;
-                    default:
-                        this.setError(`Неизвестная команда: c.${tagName}`, tagStart);
-                        return null;
-                }
-                i = nextIdx;
-            }
-            
-            let styleBlock = collectedStyles.length ? `<style>${collectedStyles.join('\n')}</style>` : "";
-            let scriptBlock = collectedScripts.length ? `<script>${collectedScripts.join('\n')}<\/script>` : "";
-            return { html: styleBlock + resultHtml + scriptBlock };
-        }
-    }
+    editor.addEventListener('input', updateLineNumbers);
+    editor.addEventListener('scroll', () => { lineNumbersDiv.scrollTop = editor.scrollTop; });
     
     function executeCRS(code) {
-        hideError();
-        const parser = new CRSParser(code);
-        const rendered = parser.parseAndRender();
+        const errorDiv = document.getElementById('errorPanel');
+        errorDiv.style.display = 'none';
         
-        if (parser.error) {
-            showError(parser.error, parser.errorLine);
-            return false;
+        const openTag = "<CURSED-CODING>";
+        const closeTag = "</CCURSED-CODING>";
+        const openIdx = code.indexOf(openTag);
+        const closeIdx = code.indexOf(closeTag);
+        
+        if (openIdx === -1) { showError("Отсутствует <CURSED-CODING>"); return; }
+        if (closeIdx === -1) { showError("Отсутствует </CCURSED-CODING>"); return; }
+        
+        const inner = code.substring(openIdx + openTag.length, closeIdx);
+        let resultHtml = "";
+        let collectedScripts = [];
+        let i = 0;
+        
+        const findCloseTag = (startPos, tagName) => {
+            const closeRegex = new RegExp(`<cc\\.${tagName}>`, 'i');
+            const slice = inner.substring(startPos);
+            const match = slice.match(closeRegex);
+            if (!match) return null;
+            const innerVal = inner.substring(startPos, startPos + match.index);
+            const nextPos = startPos + match.index + match[0].length;
+            return { innerVal, nextPos };
+        };
+        
+        while (i < inner.length) {
+            const openMatch = inner.substring(i).match(/<c\.([a-zA-Z]+)>/);
+            if (!openMatch) break;
+            
+            const tagName = openMatch[1].toLowerCase();
+            const innerStart = i + openMatch.index + openMatch[0].length;
+            const closed = findCloseTag(innerStart, tagName);
+            if (!closed) { showError(`Нет закрывающего <cc.${tagName}>`); return; }
+            
+            const innerRaw = closed.innerVal;
+            const nextIdx = closed.nextPos;
+            
+            switch (tagName) {
+                case 'button':
+                    resultHtml += `<button class="crs-btn" style="background:#4CAF50; color:white; border:none; padding:8px 16px; margin:5px; border-radius:4px; cursor:pointer;">${escapeHtml(innerRaw.trim()) || 'Кнопка'}</button>`;
+                    break;
+                case 'input':
+                    resultHtml += `<input type="text" class="crs-input" placeholder="${escapeHtml(innerRaw.trim())}" style="padding:8px; border:1px solid #ccc; border-radius:4px; margin:5px 0; width:100%; box-sizing:border-box;">`;
+                    break;
+                case 'text':
+                    resultHtml += `<div style="margin:5px 0;">${escapeHtml(innerRaw)}</div>`;
+                    break;
+                case 'title':
+                    resultHtml += `<h2 style="margin:10px 0; color:#333;">${escapeHtml(innerRaw)}</h2>`;
+                    break;
+                case 'script':
+                    collectedScripts.push(innerRaw);
+                    break;
+                default:
+                    resultHtml += `<div>${escapeHtml(innerRaw)}</div>`;
+            }
+            i = nextIdx;
         }
         
-        if (rendered && rendered.html !== undefined) {
-            renderDiv.innerHTML = rendered.html;
-            
-            // Принудительно запускаем все скрипты и УДАЛЯЕМ старые обработчики
-            setTimeout(() => {
-                const scripts = renderDiv.querySelectorAll('script');
-                scripts.forEach(oldScript => {
-                    const newScript = document.createElement('script');
-                    newScript.textContent = oldScript.textContent;
-                    oldScript.parentNode.replaceChild(newScript, oldScript);
-                });
-                
-                // Очищаем старые обработчики у кнопок
-                const btns = renderDiv.querySelectorAll('.crs-btn');
-                btns.forEach(btn => {
-                    const newBtn = btn.cloneNode(true);
-                    btn.parentNode.replaceChild(newBtn, btn);
-                });
-            }, 10);
-            
-            return true;
-        } else {
-            showError("Ошибка трансляции", 1);
-            return false;
-        }
+        renderDiv.innerHTML = resultHtml;
+        
+        setTimeout(() => {
+            const scripts = renderDiv.querySelectorAll('script');
+            scripts.forEach(oldScript => {
+                const newScript = document.createElement('script');
+                newScript.textContent = oldScript.textContent;
+                oldScript.parentNode.replaceChild(newScript, oldScript);
+            });
+        }, 10);
     }
     
-    function loadExample() {
+    // ============ UI ОБРАБОТЧИКИ ============
+    document.getElementById('runBtn').onclick = () => executeCRS(editor.value);
+    
+    document.getElementById('saveAppBtn').onclick = async () => {
+        const title = prompt("Название приложения:");
+        if (title && editor.value) {
+            await saveApp(title, editor.value);
+        }
+    };
+    
+    document.getElementById('myAppsBtn').onclick = async () => {
+        const apps = await getUserApps();
+        const modal = document.getElementById('modal');
+        const list = document.getElementById('modalList');
+        document.getElementById('modalTitle').innerText = "Мои приложения";
+        list.innerHTML = '';
+        for (const app of apps) {
+            const div = document.createElement('div');
+            div.className = 'app-item';
+            div.innerHTML = `<strong>${escapeHtml(app.title)}</strong><br><small>${new Date(app.created_at).toLocaleString()}</small>`;
+            div.onclick = () => { loadApp(app.id); modal.style.display = 'none'; };
+            list.appendChild(div);
+        }
+        modal.style.display = 'flex';
+    };
+    
+    document.getElementById('allAppsBtn').onclick = async () => {
+        const apps = await getAllApps();
+        const modal = document.getElementById('modal');
+        const list = document.getElementById('modalList');
+        document.getElementById('modalTitle').innerText = "Все приложения";
+        list.innerHTML = '';
+        for (const app of apps) {
+            const div = document.createElement('div');
+            div.className = 'app-item';
+            div.innerHTML = `<strong>${escapeHtml(app.title)}</strong><br><small>Автор: ${app.author_id} | ${new Date(app.created_at).toLocaleString()}</small>`;
+            div.onclick = () => { loadApp(app.id); modal.style.display = 'none'; };
+            list.appendChild(div);
+        }
+        modal.style.display = 'flex';
+    };
+    
+    document.getElementById('closeModal').onclick = () => {
+        document.getElementById('modal').style.display = 'none';
+    };
+    
+    document.getElementById('resetExample').onclick = () => {
         editor.value = `<CURSED-CODING>
-<c.title> 🌟 Добро пожаловать в CRS! <cc.title>
-
-<c.text> 👇 Введи своё имя в поле ниже: <cc.text>
-<c.input> Ваше имя <cc.input>
-<c.button> Поздороваться <cc.button>
+<c.title> Приветственная программа </c.title>
+<c.text> Введите ваше имя: </c.text>
+<c.input> </c.input>
+<c.button> Поздороваться </c.button>
 
 <c.script>
-  // Находим кнопку и поле
   let btn = document.querySelector('.crs-btn');
   let inp = document.querySelector('.crs-input');
-  
-  // Вешаем обработчик
   btn.onclick = function() {
     let name = inp.value;
-    if (name && name.trim() !== '') {
-      alert('Привет, ' + name.trim() + '!');
-    } else {
-      alert('Введите имя!');
-    }
+    if (name && name.trim()) alert('Привет, ' + name.trim() + '!');
+    else alert('Введите имя!');
   };
-<cc.script>
-
-<c.box>
-  <c.text> 🎉 CRS поддерживает: <cc.text>
-  <c.text> • Кнопки и инпуты <cc.text>
-  <c.text> • Полноценный JavaScript <cc.text>
-  <c.text> • CSS стили <cc.text>
-<cc.box>
-</CCURSED-CODING>`;
-        
+</c.script>
+</CURSED-CODING>`;
         updateLineNumbers();
         executeCRS(editor.value);
+    };
+    
+    document.getElementById('clearOutput').onclick = () => {
+        renderDiv.innerHTML = '<div style="color:#aaa; text-align:center; padding:20px;">✨ Вывод очищен ✨</div>';
+        document.getElementById('errorPanel').style.display = 'none';
+    };
+    
+    document.getElementById('loginBtn').onclick = async () => {
+        const username = prompt("Имя пользователя:");
+        if (!username) return;
+        const password = prompt("Пароль:");
+        if (!password) return;
+        if (await login(username, password)) {
+            alert("Вход выполнен!");
+        } else {
+            alert("Неверные имя или пароль");
+        }
+    };
+    
+    document.getElementById('registerBtn').onclick = async () => {
+        const username = prompt("Придумайте имя:");
+        if (!username) return;
+        const password = prompt("Придумайте пароль:");
+        if (!password) return;
+        if (await register(username, password)) {
+            alert("Регистрация успешна! Теперь войдите.");
+        } else {
+            alert("Ошибка регистрации");
+        }
+    };
+    
+    // Восстановление сессии
+    const saved = localStorage.getItem('crs_session');
+    if (saved) {
+        try {
+            currentUser = JSON.parse(saved);
+            document.getElementById('currentUser').innerText = currentUser.username;
+        } catch(e) {}
     }
     
-    document.getElementById('runBtn').addEventListener('click', () => {
-        const src = editor.value;
-        if (!src.trim()) {
-            showError("Пустой код", 1);
-        } else {
-            executeCRS(src);
-        }
-    });
-    
-    document.getElementById('resetExample').addEventListener('click', () => loadExample());
-    document.getElementById('clearOutput').addEventListener('click', () => {
-        renderDiv.innerHTML = `<div style="padding:20px; color:#aaa; text-align:center;">✨ Очищено ✨</div>`;
-        hideError();
-    });
-    
-    loadExample();
-    syncScroll();
     updateLineNumbers();
+    executeCRS(editor.value);
 </script>
 </body>
 </html>
