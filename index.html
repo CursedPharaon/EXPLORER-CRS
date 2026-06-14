@@ -19,7 +19,7 @@
         .button-bar { padding: 10px; background: #eef2f7; border-top: 1px solid #ccc; display: flex; gap: 10px; flex-wrap: wrap; }
         button { background: #e0e5ec; border: 1px solid #8a9cb0; padding: 6px 16px; font-family: monospace; font-weight: bold; cursor: pointer; }
         button:hover { background: #d0d8e4; }
-        .output-panel { flex: 1; min-width: 350px; background: #fff; }
+        .output-panel { flex: 1; min-width: 350px; background: #fff; display: flex; flex-direction: column; }
         .output-header { background: #eef2f7; padding: 6px 12px; border-bottom: 1px solid #bbb; font-weight: bold; }
         .render-area { padding: 16px; background: white; min-height: 500px; overflow-y: auto; }
         .error-box { background: #fff0ee; border-left: 5px solid #c00; padding: 10px; color: #a00; display: none; margin: 10px; }
@@ -33,8 +33,10 @@
         .modal-content { background: white; padding: 20px; border-radius: 8px; max-width: 400px; width: 90%; }
         .app-item { background: #f0f2f5; padding: 10px; margin: 10px 0; border-radius: 4px; cursor: pointer; }
         .app-item:hover { background: #e0e5ec; }
+        
         .crs-btn { background: #4CAF50; color: white; border: none; padding: 8px 16px; margin: 5px; border-radius: 4px; cursor: pointer; }
-        .crs-input { padding: 8px; border: 1px solid #ccc; border-radius: 4px; width: 100%; margin: 5px 0; }
+        .crs-input { padding: 8px; border: 1px solid #ccc; border-radius: 4px; width: 100%; margin: 5px 0; box-sizing: border-box; }
+        .card { border: 1px solid #ddd; border-radius: 12px; padding: 16px; margin: 10px 0; background: #fafcff; }
     </style>
 </head>
 <body>
@@ -199,6 +201,23 @@
             else if (tag === 'text') html += `<div>${escapeHtml(innerRaw)}</div>`;
             else if (tag === 'title') html += `<h2>${escapeHtml(innerRaw)}</h2>`;
             else if (tag === 'script') scripts.push(innerRaw);
+            else if (tag === 'card') html += `<div class="card">${escapeHtml(innerRaw)}</div>`;
+            else if (tag === 'style') {
+                let styleHtml = '';
+                const lines = innerRaw.split('\n');
+                for (let line of lines) {
+                    line = line.trim();
+                    if (line.startsWith('кнопка')) styleHtml += `.crs-btn { `;
+                    else if (line.startsWith('поле')) styleHtml += `.crs-input { `;
+                    else if (line.startsWith('карточка')) styleHtml += `.card { `;
+                    else if (line.startsWith('фон')) styleHtml += `background-color: ${line.split('=')[1].trim()}; `;
+                    else if (line.startsWith('цвет')) styleHtml += `color: ${line.split('=')[1].trim()}; `;
+                    else if (line.startsWith('отступ')) styleHtml += `padding: ${line.split('=')[1].trim()}; `;
+                    else if (line.startsWith('углы')) styleHtml += `border-radius: ${line.split('=')[1].trim()}; `;
+                    else if (line === '}') styleHtml += `} `;
+                }
+                if (styleHtml) html = `<style>${styleHtml}</style>` + html;
+            }
             else html += `<div>${escapeHtml(innerRaw)}</div>`;
         }
         return { html, scripts };
@@ -210,7 +229,7 @@
         const openIdx = code.indexOf(openTag);
         const closeIdx = code.indexOf(closeTag);
         if (openIdx === -1 || closeIdx === -1) {
-            document.getElementById('renderContainer').innerHTML = '<div style="color:#b00;">Ошибка: нет тегов</div>';
+            document.getElementById('renderContainer').innerHTML = '<div style="color:#b00;">Ошибка: нет тегов &lt;CURSED-CODING&gt;</div>';
             return;
         }
         const inner = code.substring(openIdx + openTag.length, closeIdx);
@@ -268,6 +287,7 @@
     function escapeHtml(str) { return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m])); }
     
     const editor = document.getElementById('crsCode');
+    const renderDiv = document.getElementById('renderContainer');
     const lineNumbersDiv = document.getElementById('lineNumbers');
     const lineCountInfo = document.getElementById('lineCountInfo');
     
@@ -287,19 +307,70 @@
     document.getElementById('allAppsBtn').onclick = showAllApps;
     document.getElementById('resetExample').onclick = () => {
         editor.value = `<CURSED-CODING>
-<c.title> Приветственная программа <cc.title>
-<c.text> Введите ваше имя: <cc.text>
-<c.input> <cc.input>
-<c.button> Поздороваться <cc.button>
+<c.title> CRS Пример с карточками и стилями </c.title>
+
+<c.text> Вот пример карточки с кнопкой: </c.text>
+
+<c.card>
+  <c.text> 🎉 Карточка товара </c.text>
+  <c.text> Цена: 1000 рублей </c.text>
+  <c.button> Купить </c.button>
+</c.card>
+
+<c.card>
+  <c.text> 🔥 Супер предложение </c.text>
+  <c.text> Скидка 50% только сегодня! </c.text>
+  <c.button> Заказать </c.button>
+</c.card>
+
+<c.text> Введите ваше имя: </c.text>
+<c.input> </c.input>
+<c.button> Поздороваться </c.button>
+
+<c.style>
+кнопка
+  фон = зелёный
+  цвет = белый
+  отступ = 8px 16px
+  углы = 8px
+
+кнопка при наведении
+  фон = темно-зелёный
+
+поле
+  отступ = 8px
+  ширина = 200px
+  углы = 5px
+  рамка = 1px сплошной серый
+
+карточка
+  фон = белый
+  тень = 0 2px 8px серый
+  углы = 12px
+  отступ = 16px
+</c.style>
+
 <c.script>
   let btn = document.querySelector('.crs-btn');
   let inp = document.querySelector('.crs-input');
+  
   btn.onclick = function() {
     let name = inp.value;
-    if (name && name.trim()) alert('Привет, ' + name.trim() + '!');
-    else alert('Введите имя!');
+    if (name && name.trim()) {
+      alert('Привет, ' + name.trim() + '!');
+    } else {
+      alert('Введите имя!');
+    }
   };
-<cc.script>
+  
+  let buyBtns = document.querySelectorAll('.card .crs-btn');
+  for (let i = 0; i < buyBtns.length; i++) {
+    buyBtns[i].onclick = function() {
+      alert('Товар добавлен в корзину!');
+    };
+  }
+</c.script>
+
 </CCURSED-CODING>`;
         updateLineNumbers();
         executeCRS(editor.value);
