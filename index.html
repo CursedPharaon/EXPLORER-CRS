@@ -25,26 +25,16 @@
         .error-box { background: #fff0ee; border-left: 5px solid #c00; padding: 10px; color: #a00; display: none; margin: 10px; }
         .user-panel { background: #eef2f7; padding: 5px 12px; border-bottom: 1px solid #ccc; display: flex; justify-content: space-between; align-items: center; }
         
-        .crs-modal {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.5); z-index: 10000;
-            display: flex; justify-content: center; align-items: center;
-        }
-        .crs-modal-content {
-            background: white; border-radius: 12px; padding: 24px;
-            min-width: 300px; max-width: 400px; text-align: center;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
-        }
-        .crs-modal-content p { font-size: 18px; margin-bottom: 20px; }
-        .crs-modal-content button {
-            background: #4CAF50; color: white; border: none;
-            padding: 8px 24px; border-radius: 6px; cursor: pointer;
-        }
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.8); z-index: 1000; justify-content: center; align-items: center; }
+        .crs-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 10000; display: flex; justify-content: center; align-items: center; }
+        .crs-modal-content { background: white; border-radius: 12px; padding: 24px; min-width: 300px; text-align: center; }
+        .crs-modal-content button { background: #4CAF50; color: white; border: none; padding: 8px 24px; border-radius: 6px; cursor: pointer; }
+        
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; justify-content: center; align-items: center; }
         .modal-content { background: white; padding: 20px; border-radius: 8px; max-width: 400px; width: 90%; }
         .app-item { background: #f0f2f5; padding: 10px; margin: 10px 0; border-radius: 4px; cursor: pointer; }
         .app-item:hover { background: #e0e5ec; }
+        .crs-btn { background: #4CAF50; color: white; border: none; padding: 8px 16px; margin: 5px; border-radius: 4px; cursor: pointer; }
+        .crs-input { padding: 8px; border: 1px solid #ccc; border-radius: 4px; width: 100%; margin: 5px 0; }
     </style>
 </head>
 <body>
@@ -110,17 +100,14 @@
     
     let currentUser = null;
     
-    // Свой alert
     window.alert = function(msg) {
         const old = document.querySelector('.crs-modal');
         if(old) old.remove();
         const div = document.createElement('div');
         div.className = 'crs-modal';
-        div.innerHTML = `<div class="crs-modal-content"><p>${String(msg).replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m]))}</p><button onclick="this.closest('.crs-modal').remove()">OK</button></div>`;
+        div.innerHTML = `<div class="crs-modal-content"><p>${String(msg)}</p><button onclick="this.closest('.crs-modal').remove()">OK</button></div>`;
         document.body.appendChild(div);
     };
-    
-    function showToast(msg) { alert(msg); }
     
     async function register() {
         const username = document.getElementById('regUsername').value.trim();
@@ -128,14 +115,11 @@
         if (!username || !password) { alert("Заполните поля"); return; }
         try {
             const res = await fetch(`${SUPABASE_URL}/rest/v1/crs_users`, {
-                method: 'POST',
-                headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json' },
+                method: 'POST', headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json' },
                 body: JSON.stringify({ username, password })
             });
-            if (res.ok) {
-                alert("Регистрация успешна! Теперь войдите.");
-                document.getElementById('registerModal').style.display = 'none';
-            } else alert("Пользователь уже существует");
+            if (res.ok) { alert("Регистрация успешна! Войдите."); document.getElementById('registerModal').style.display = 'none'; }
+            else alert("Пользователь уже существует");
         } catch(e) { alert("Ошибка"); }
     }
     
@@ -162,8 +146,7 @@
     }
     
     function logout() {
-        currentUser = null;
-        localStorage.removeItem('crs_user');
+        currentUser = null; localStorage.removeItem('crs_user');
         document.getElementById('currentUser').innerText = "Гость";
         document.getElementById('showLoginBtn').style.display = 'inline-block';
         document.getElementById('showRegisterBtn').style.display = 'inline-block';
@@ -177,14 +160,11 @@
         if (!title) return;
         const code = document.getElementById('crsCode').value;
         if (!code) { alert("Код пуст"); return; }
-        try {
-            await fetch(`${SUPABASE_URL}/rest/v1/crs_apps`, {
-                method: 'POST',
-                headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json' },
-                body: JSON.stringify({ title, code, author_id: currentUser.id, is_public: true })
-            });
-            alert("Сохранено!");
-        } catch(e) { alert("Ошибка"); }
+        await fetch(`${SUPABASE_URL}/rest/v1/crs_apps`, {
+            method: 'POST', headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ title, code, author_id: currentUser.id, is_public: true })
+        });
+        alert("Сохранено!");
     }
     
     async function getMyApps() {
@@ -214,10 +194,10 @@
             if (closePos === -1) break;
             const innerRaw = code.substring(contentStart, closePos);
             i = closePos + closeTag.length;
-            if (tag === 'button') html += `<button class="crs-btn" style="background:#4CAF50; color:white; border:none; padding:8px 16px; margin:5px; border-radius:4px; cursor:pointer;">${escapeHtml(innerRaw.trim()) || 'Кнопка'}</button>`;
-            else if (tag === 'input') html += `<input type="text" class="crs-input" placeholder="${escapeHtml(innerRaw.trim())}" style="padding:8px; border:1px solid #ccc; border-radius:4px; margin:5px 0; width:100%;">`;
-            else if (tag === 'text') html += `<div style="margin:5px 0;">${escapeHtml(innerRaw)}</div>`;
-            else if (tag === 'title') html += `<h2 style="margin:10px 0;">${escapeHtml(innerRaw)}</h2>`;
+            if (tag === 'button') html += `<button class="crs-btn">${escapeHtml(innerRaw.trim()) || 'Кнопка'}</button>`;
+            else if (tag === 'input') html += `<input type="text" class="crs-input" placeholder="${escapeHtml(innerRaw.trim())}">`;
+            else if (tag === 'text') html += `<div>${escapeHtml(innerRaw)}</div>`;
+            else if (tag === 'title') html += `<h2>${escapeHtml(innerRaw)}</h2>`;
             else if (tag === 'script') scripts.push(innerRaw);
             else html += `<div>${escapeHtml(innerRaw)}</div>`;
         }
@@ -230,7 +210,7 @@
         const openIdx = code.indexOf(openTag);
         const closeIdx = code.indexOf(closeTag);
         if (openIdx === -1 || closeIdx === -1) {
-            document.getElementById('renderContainer').innerHTML = '<div style="color:#b00;">Ошибка: нет тегов &lt;CURSED-CODING&gt;</div>';
+            document.getElementById('renderContainer').innerHTML = '<div style="color:#b00;">Ошибка: нет тегов</div>';
             return;
         }
         const inner = code.substring(openIdx + openTag.length, closeIdx);
@@ -307,10 +287,10 @@
     document.getElementById('allAppsBtn').onclick = showAllApps;
     document.getElementById('resetExample').onclick = () => {
         editor.value = `<CURSED-CODING>
-<c.title> Приветственная программа </c.title>
-<c.text> Введите ваше имя: </c.text>
-<c.input> </c.input>
-<c.button> Поздороваться </c.button>
+<c.title> Приветственная программа <cc.title>
+<c.text> Введите ваше имя: <cc.text>
+<c.input> <cc.input>
+<c.button> Поздороваться <cc.button>
 <c.script>
   let btn = document.querySelector('.crs-btn');
   let inp = document.querySelector('.crs-input');
@@ -319,8 +299,8 @@
     if (name && name.trim()) alert('Привет, ' + name.trim() + '!');
     else alert('Введите имя!');
   };
-</c.script>
-</CURSED-CODING>`;
+<cc.script>
+</CCURSED-CODING>`;
         updateLineNumbers();
         executeCRS(editor.value);
     };
