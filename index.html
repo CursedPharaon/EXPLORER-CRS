@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>КРС Language Explorer</title>
+    <title>КРС Language Explorer — Полная версия</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { background: #e8ecf2; font-family: 'Courier New', monospace; padding: 20px; }
@@ -36,6 +36,17 @@
         .crs-input { padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin: 5px 0; width: 100%; }
         .crs-text { margin: 5px 0; }
         .crs-title { margin: 10px 0; }
+        .crs-select { padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin: 5px 0; }
+        .crs-radio-group { margin: 5px 0; }
+        .crs-range { width: 100%; margin: 5px 0; }
+        .crs-image { max-width: 100%; height: auto; margin: 5px 0; }
+        .crs-video { max-width: 100%; margin: 5px 0; }
+        .crs-audio { width: 100%; margin: 5px 0; }
+        .crs-table { border-collapse: collapse; width: 100%; margin: 10px 0; }
+        .crs-table th, .crs-table td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        .crs-details { margin: 10px 0; padding: 10px; background: #f5f5f5; border-radius: 8px; }
+        .crs-summary { font-weight: bold; cursor: pointer; }
+        .crs-code { background: #1e2a2f; color: #d4d4d4; padding: 10px; border-radius: 8px; font-family: monospace; overflow-x: auto; }
     </style>
 </head>
 <body>
@@ -199,7 +210,7 @@
         const closeIdx = code.indexOf(closeTag);
         
         if (openIdx === -1 || closeIdx === -1) {
-            document.getElementById('renderContainer').innerHTML = '<div style="color:#b00;">Ошибка: нет тегов &lt;CURSED-CODING&gt;</div>';
+            document.getElementById('renderContainer').innerHTML = '<div style="color:#b00;">Ошибка: нет тегов</div>';
             return;
         }
         
@@ -218,21 +229,25 @@
             const attrs = parseTagAttributes(attrsRaw);
             const contentStart = i + openMatch.index + openMatch[0].length;
             const closeTagPattern = `<cc.${tag}>`;
-            const closePos = content.indexOf(closeTagPattern, contentStart);
+            let closePos = content.indexOf(closeTagPattern, contentStart);
             
             if (closePos === -1) break;
             
-            const innerRaw = content.substring(contentStart, closePos);
+            let innerRaw = content.substring(contentStart, closePos);
             i = closePos + closeTagPattern.length;
             
             let idAttr = attrs.id ? ` id="${attrs.id}"` : '';
             let classAttr = attrs.class ? ` class="${attrs.class}"` : '';
             
+            // Базовые элементы
             if (tag === 'button') {
                 html += `<button${idAttr} class="crs-btn ${attrs.class || ''}">${escapeHtml(innerRaw.trim()) || 'Кнопка'}</button>`;
             }
             else if (tag === 'input') {
                 html += `<input type="text"${idAttr} class="crs-input ${attrs.class || ''}" placeholder="${escapeHtml(innerRaw.trim())}">`;
+            }
+            else if (tag === 'textarea') {
+                html += `<textarea${idAttr} class="crs-textarea ${attrs.class || ''}" rows="4" placeholder="${escapeHtml(innerRaw.trim())}"></textarea>`;
             }
             else if (tag === 'text') {
                 html += `<div${idAttr} class="crs-text ${attrs.class || ''}">${escapeHtml(innerRaw)}</div>`;
@@ -243,11 +258,149 @@
             else if (tag === 'card') {
                 html += `<div${idAttr} class="crs-card ${attrs.class || ''}">${escapeHtml(innerRaw)}</div>`;
             }
+            // Ссылки и медиа
+            else if (tag === 'link') {
+                let parts = innerRaw.split('|');
+                let url = parts[0] ? parts[0].trim() : '#';
+                let text = parts[1] ? parts[1].trim() : 'Ссылка';
+                html += `<a${idAttr} class="crs-link ${attrs.class || ''}" href="${escapeHtml(url)}" target="_blank">${escapeHtml(text)}</a>`;
+            }
+            else if (tag === 'image') {
+                let parts = innerRaw.split('|');
+                let src = parts[0] ? parts[0].trim() : '';
+                let alt = parts[1] ? parts[1].trim() : 'Изображение';
+                html += `<img${idAttr} class="crs-image ${attrs.class || ''}" src="${escapeHtml(src)}" alt="${escapeHtml(alt)}">`;
+            }
+            else if (tag === 'video') {
+                let parts = innerRaw.split('|');
+                let src = parts[0] ? parts[0].trim() : '';
+                let controls = parts[1] === 'controls' ? ' controls' : '';
+                html += `<video${idAttr} class="crs-video ${attrs.class || ''}" src="${escapeHtml(src)}"${controls}></video>`;
+            }
+            else if (tag === 'audio') {
+                let parts = innerRaw.split('|');
+                let src = parts[0] ? parts[0].trim() : '';
+                html += `<audio${idAttr} class="crs-audio ${attrs.class || ''}" src="${escapeHtml(src)}" controls></audio>`;
+            }
+            else if (tag === 'iframe') {
+                let parts = innerRaw.split('|');
+                let src = parts[0] ? parts[0].trim() : '';
+                let width = parts[1] ? parts[1].trim() : '560';
+                let height = parts[2] ? parts[2].trim() : '315';
+                html += `<iframe${idAttr} class="crs-iframe ${attrs.class || ''}" src="${escapeHtml(src)}" width="${width}" height="${height}" frameborder="0" allowfullscreen></iframe>`;
+            }
+            // Формы и элементы ввода
+            else if (tag === 'select') {
+                let options = innerRaw.split(',').map(opt => opt.trim());
+                let selectHtml = `<select${idAttr} class="crs-select ${attrs.class || ''}">`;
+                for (let opt of options) {
+                    selectHtml += `<option value="${escapeHtml(opt)}">${escapeHtml(opt)}</option>`;
+                }
+                selectHtml += `</select>`;
+                html += selectHtml;
+            }
+            else if (tag === 'radio') {
+                let options = innerRaw.split(',').map(opt => opt.trim());
+                let radioHtml = `<div${idAttr} class="crs-radio-group ${attrs.class || ''}">`;
+                for (let i = 0; i < options.length; i++) {
+                    radioHtml += `<label><input type="radio" name="crs_radio_${attrs.id || 'group'}" value="${escapeHtml(options[i])}"> ${escapeHtml(options[i])}</label>`;
+                }
+                radioHtml += `</div>`;
+                html += radioHtml;
+            }
+            else if (tag === 'checkbox') {
+                html += `<label${idAttr} class="crs-checkbox ${attrs.class || ''}"><input type="checkbox"> ${escapeHtml(innerRaw.trim())}</label>`;
+            }
+            else if (tag === 'range') {
+                let defaultValue = innerRaw.trim() || '50';
+                html += `<input type="range" min="0" max="100" value="${defaultValue}"${idAttr} class="crs-range ${attrs.class || ''}">`;
+            }
+            else if (tag === 'number') {
+                html += `<input type="number"${idAttr} class="crs-number ${attrs.class || ''}" placeholder="${escapeHtml(innerRaw.trim())}">`;
+            }
+            else if (tag === 'date') {
+                html += `<input type="date"${idAttr} class="crs-date ${attrs.class || ''}">`;
+            }
+            else if (tag === 'color') {
+                html += `<input type="color"${idAttr} class="crs-color ${attrs.class || ''}" value="#2196F3">`;
+            }
+            // Списки
+            else if (tag === 'list') {
+                html += `<ul${idAttr} class="crs-list ${attrs.class || ''}">${innerRaw}</ul>`;
+            }
+            else if (tag === 'item') {
+                html += `<li class="crs-item">${escapeHtml(innerRaw)}</li>`;
+            }
+            else if (tag === 'olist') {
+                html += `<ol${idAttr} class="crs-olist ${attrs.class || ''}">${innerRaw}</ol>`;
+            }
+            // Таблицы
+            else if (tag === 'table') {
+                html += `<table${idAttr} class="crs-table ${attrs.class || ''}">${innerRaw}</table>`;
+            }
+            else if (tag === 'row') {
+                html += `<tr>${innerRaw}</tr>`;
+            }
+            else if (tag === 'header') {
+                html += `<th class="crs-th">${escapeHtml(innerRaw)}</th>`;
+            }
+            else if (tag === 'cell') {
+                html += `<td class="crs-td">${escapeHtml(innerRaw)}</td>`;
+            }
+            // Структурные
+            else if (tag === 'details') {
+                html += `<details${idAttr} class="crs-details ${attrs.class || ''}">${innerRaw}</details>`;
+            }
+            else if (tag === 'summary') {
+                html += `<summary class="crs-summary">${escapeHtml(innerRaw)}</summary>`;
+            }
+            else if (tag === 'grid') {
+                html += `<div${idAttr} class="crs-grid ${attrs.class || ''}" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:16px;">${innerRaw}</div>`;
+            }
+            else if (tag === 'flex') {
+                html += `<div${idAttr} class="crs-flex ${attrs.class || ''}" style="display:flex;gap:16px;flex-wrap:wrap;">${innerRaw}</div>`;
+            }
+            else if (tag === 'center') {
+                html += `<div${idAttr} class="crs-center ${attrs.class || ''}" style="text-align:center;">${innerRaw}</div>`;
+            }
+            else if (tag === 'box') {
+                html += `<div${idAttr} class="crs-box ${attrs.class || ''}" style="border:1px solid #ddd;border-radius:8px;padding:16px;margin:10px 0;">${innerRaw}</div>`;
+            }
+            // Оформление
+            else if (tag === 'badge') {
+                html += `<span${idAttr} class="crs-badge ${attrs.class || ''}" style="background:#ff9800;color:#1a2a3a;padding:2px 8px;border-radius:12px;font-size:12px;">${escapeHtml(innerRaw)}</span>`;
+            }
+            else if (tag === 'mark') {
+                html += `<mark${idAttr} class="crs-mark ${attrs.class || ''}">${escapeHtml(innerRaw)}</mark>`;
+            }
+            else if (tag === 'code') {
+                html += `<pre${idAttr} class="crs-code ${attrs.class || ''}"><code>${escapeHtml(innerRaw)}</code></pre>`;
+            }
+            else if (tag === 'alert') {
+                html += `<div${idAttr} class="crs-alert ${attrs.class || ''}" style="background:#fff3e0;border-left:4px solid #ff9800;padding:12px;margin:10px 0;border-radius:8px;">${escapeHtml(innerRaw)}</div>`;
+            }
+            else if (tag === 'progress') {
+                let value = parseInt(innerRaw.trim()) || 50;
+                html += `<progress${idAttr} class="crs-progress ${attrs.class || ''}" value="${value}" max="100">${value}%</progress>`;
+            }
+            else if (tag === 'tooltip') {
+                html += `<span${idAttr} class="crs-tooltip ${attrs.class || ''}" title="${escapeHtml(innerRaw)}">${escapeHtml(innerRaw)}</span>`;
+            }
+            else if (tag === 'hr') {
+                html += `<hr${idAttr} class="crs-hr ${attrs.class || ''}">`;
+            }
+            else if (tag === 'spacer') {
+                let height = parseInt(innerRaw.trim()) || 20;
+                html += `<div${idAttr} class="crs-spacer ${attrs.class || ''}" style="height:${height}px;"></div>`;
+            }
             else if (tag === 'style') {
                 styles.push(innerRaw);
             }
             else if (tag === 'script') {
                 scripts.push(innerRaw);
+            }
+            else if (tag === 'html') {
+                html += innerRaw;
             }
         }
         
@@ -300,7 +453,9 @@
                     .replace(/поле/g, '.crs-input')
                     .replace(/карточка/g, '.crs-card')
                     .replace(/текст/g, '.crs-text')
-                    .replace(/заголовок/g, '.crs-title');
+                    .replace(/заголовок/g, '.crs-title')
+                    .replace(/список/g, '.crs-list')
+                    .replace(/таблица/g, '.crs-table');
                 css += `${currentSelector} { `;
                 inRule = true;
                 continue;
@@ -483,14 +638,8 @@
         lineNumbersDiv.innerHTML = html;
     }
     
-    // ОБНОВЛЕНИЕ НОМЕРОВ СТРОК ТОЛЬКО ПРИ ЗАПУСКЕ И ЗАГРУЗКЕ ПРИМЕРА
-    editor.addEventListener('focus', function() {
-        updateLineNumbers();
-    });
-    
-    editor.addEventListener('scroll', function() {
-        lineNumbersDiv.scrollTop = editor.scrollTop;
-    });
+    editor.addEventListener('focus', function() { updateLineNumbers(); });
+    editor.addEventListener('scroll', function() { lineNumbersDiv.scrollTop = editor.scrollTop; });
     
     document.getElementById('runBtn').onclick = () => executeCRS(editor.value);
     document.getElementById('saveAppBtn').onclick = saveApp;
@@ -499,41 +648,76 @@
     document.getElementById('resetExample').onclick = () => {
         editor.value = `<CURSED-CODING>
 
-<c.title> 🐄 КРС — пример <cc.title>
+<c.title> 🎉 КРС — все HTML-команды <cc.title>
 
-<c.text> 🌾 Привет! Вот кнопка и поле ввода <cc.text>
+<c.text> 📝 Текстовые элементы: <cc.text>
+<c.text> Обычный текст <cc.text>
+<c.title> Заголовок <cc.title>
 
-<c.text> Введи своё имя: <cc.text>
-<c.input id="nameInput" placeholder="Введите имя"> <cc.input>
+<c.text> 🔗 Ссылки и медиа: <cc.text>
+<c.link> https://example.com | Пример ссылки <cc.link>
+<c.image> https://picsum.photos/200/100 | Случайное изображение <cc.image>
 
-<c.button id="greetBtn"> Поздороваться <cc.button>
+<c.text> 🎮 Формы: <cc.text>
+<c.input> Поле ввода <cc.input>
+<c.textarea> Текстовое поле<cc.textarea>
+<c.select> Вариант 1, Вариант 2, Вариант 3<cc.select>
+<c.radio> Красный, Синий, Зелёный<cc.radio>
+<c.checkbox> Согласен с условиями<cc.checkbox>
+<c.range>50<cc.range>
+
+<c.text> 📊 Списки: <cc.text>
+<c.list>
+  <c.item>Пункт 1<cc.item>
+  <c.item>Пункт 2<cc.item>
+  <c.item>Пункт 3<cc.item>
+<cc.list>
+
+<c.text> 📋 Таблица: <cc.text>
+<c.table>
+  <c.row>
+    <c.header>Имя<cc.header>
+    <c.header>Возраст<cc.header>
+  <cc.row>
+  <c.row>
+    <c. cell>Алекс<cc.cell>
+    <c.cell>25<cc.cell>
+  <cc.row>
+<cc.table>
+
+<c.text> 🎨 Оформление: <cc.text>
+<c.badge> Новинка <cc.badge>
+<c.mark> Выделенный текст <cc.mark>
+<c.alert> Важное уведомление! <cc.alert>
+<c.progress>75<cc.progress>
+
+<c.text> 🧱 Структурные элементы: <cc.text>
+<c.card>
+  <c.text> Это карточка <cc.text>
+  <c.button> Нажми <cc.button>
+<cc.card>
+
+<c.details>
+  <c.summary>Подробнее<cc.summary>
+  <c.text>Скрытый контент, который появляется при нажатии<cc.text>
+<cc.details>
+
+<c.alert> 🎉 Все команды работают! <cc.alert>
 
 <c.style>
 кнопка {
-  фон = зелёный
+  фон = синий
   цвет = белый
+  углы = 30px
   отступ = 8px 16px
-  углы = 8px
 }
 
-кнопка при наведении {
-  фон = тёмно-зелёный
-}
-
-поле {
-  отступ = 8px
-  ширина = 200px
-  углы = 6px
-  рамка = 1px сплошной серый
+карточка {
+  фон = белый
+  тень = 0 2px 8px серый
+  углы = 12px
 }
 </c.style>
-
-<c.script>
-document.getElementById('greetBtn').onclick = function() {
-    var name = document.getElementById('nameInput').value;
-    alert('Привет, ' + (name || 'гость') + '!');
-};
-</c.script>
 
 </CCURSED-CODING>`;
         updateLineNumbers();
