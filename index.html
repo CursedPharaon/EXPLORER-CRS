@@ -1,274 +1,56 @@
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CRS Language Explorer</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { background: #e8ecf2; font-family: monospace; padding: 20px; }
-        .container { max-width: 1400px; margin: 0 auto; background: white; border: 1px solid #aaa; }
-        .header { background: #d9dfe8; padding: 10px 16px; border-bottom: 1px solid #999; font-weight: bold; font-size: 1.3rem; display: flex; justify-content: space-between; }
-        .workspace { display: flex; flex-wrap: wrap; }
-        .editor-panel { flex: 1.2; min-width: 450px; border-right: 1px solid #ccc; }
-        .editor-header { background: #eef2f7; padding: 6px 12px; border-bottom: 1px solid #bbb; font-weight: bold; display: flex; justify-content: space-between; }
-        .editor-with-lines { display: flex; background: #fefef7; }
-        .line-numbers { background: #f0f2f5; padding: 12px 8px; text-align: right; font-family: monospace; font-size: 13px; line-height: 1.5; color: #888; border-right: 1px solid #ddd; min-width: 45px; }
-        .line-numbers div { white-space: pre; }
-        textarea { width: 100%; font-family: monospace; font-size: 13px; padding: 12px; border: none; background: #fefef7; resize: vertical; min-height: 450px; outline: none; }
-        .button-bar { padding: 10px; background: #eef2f7; border-top: 1px solid #ccc; display: flex; gap: 10px; flex-wrap: wrap; }
-        button { background: #e0e5ec; border: 1px solid #8a9cb0; padding: 6px 16px; font-family: monospace; font-weight: bold; cursor: pointer; }
-        button:hover { background: #d0d8e4; }
-        .output-panel { flex: 1; min-width: 350px; background: #fff; }
-        .output-header { background: #eef2f7; padding: 6px 12px; border-bottom: 1px solid #bbb; font-weight: bold; }
-        .render-area { padding: 16px; background: white; min-height: 500px; overflow-y: auto; }
-        .error-box { background: #fff0ee; border-left: 5px solid #c00; padding: 10px; color: #a00; display: none; margin: 10px; }
-        .user-panel { background: #eef2f7; padding: 5px 12px; border-bottom: 1px solid #ccc; display: flex; justify-content: space-between; align-items: center; }
-        .crs-btn { background: #4CAF50; color: white; border: none; padding: 8px 16px; margin: 5px; border-radius: 4px; cursor: pointer; }
-        .crs-input { padding: 8px; border: 1px solid #ccc; border-radius: 4px; width: 100%; margin: 5px 0; box-sizing: border-box; }
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; justify-content: center; align-items: center; }
-        .modal-content { background: white; padding: 20px; border-radius: 8px; max-width: 600px; width: 90%; max-height: 80%; overflow: auto; }
-        .app-item { background: #f0f2f5; padding: 10px; margin: 10px 0; border-radius: 4px; cursor: pointer; }
-        .app-item:hover { background: #e0e5ec; }
-    </style>
-</head>
-<body>
-<div class="container">
-    <div class="header"><div>CRS LANGUAGE EXPLORER</div><span>&lt;CURSED-CODING&gt;...&lt;/CCURSED-CODING&gt;</span></div>
-    <div class="user-panel">
-        <span>👤 <span id="currentUser">Гость</span></span>
-        <button id="loginBtn">Войти</button>
-        <button id="registerBtn">Регистрация</button>
-    </div>
-    <div class="workspace">
-        <div class="editor-panel">
-            <div class="editor-header"><span>РЕДАКТОР CRS</span><span id="lineCountInfo">строк: 0</span></div>
-            <div class="editor-with-lines">
-                <div class="line-numbers" id="lineNumbers"></div>
-                <textarea id="crsCode" rows="18"></textarea>
-            </div>
-            <div class="button-bar">
-                <button id="runBtn">▶ ЗАПУСТИТЬ</button>
-                <button id="saveAppBtn">💾 СОХРАНИТЬ</button>
-                <button id="myAppsBtn">📱 МОИ</button>
-                <button id="allAppsBtn">🌐 ВСЕ</button>
-                <button id="resetExample">📋 ПРИМЕР</button>
-                <button id="clearOutput">🗑 ОЧИСТИТЬ</button>
-            </div>
-        </div>
-        <div class="output-panel">
-            <div class="output-header">📺 РЕЗУЛЬТАТ</div>
-            <div id="errorPanel" class="error-box"></div>
-            <div id="renderContainer" class="render-area"></div>
-        </div>
-    </div>
-</div>
+-- Удаляем старые функции
+DROP FUNCTION IF EXISTS register_user;
+DROP FUNCTION IF EXISTS login_user;
+DROP FUNCTION IF EXISTS create_app;
+DROP FUNCTION IF EXISTS increment_views;
 
-<div id="modal" class="modal">
-    <div class="modal-content">
-        <h3 id="modalTitle">Приложения</h3>
-        <div id="modalList"></div>
-        <button id="closeModal">Закрыть</button>
-    </div>
-</div>
+-- Простая функция регистрации
+CREATE OR REPLACE FUNCTION register_user(username TEXT, user_password TEXT)
+RETURNS JSON AS $$
+DECLARE
+    new_user_id INTEGER;
+BEGIN
+    INSERT INTO crs_users (username, password) 
+    VALUES (username, user_password)
+    RETURNING id INTO new_user_id;
+    
+    RETURN json_build_object('success', true, 'user_id', new_user_id);
+EXCEPTION WHEN unique_violation THEN
+    RETURN json_build_object('success', false, 'error', 'Пользователь уже существует');
+END;
+$$ LANGUAGE plpgsql;
 
-<script>
-    const SUPABASE_URL = 'https://tmjqafqecjpizawdruzq.supabase.co';
-    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRtanFhZnFlY2pwaXphd2RydXpxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk4OTk2OTYsImV4cCI6MjA5NTQ3NTY5Nn0.8K7i5QEbjYWSvqw78P8RSR_abYM8uCRZbvC9Hp12bac';
+-- Простая функция логина
+CREATE OR REPLACE FUNCTION login_user(username TEXT, user_password TEXT)
+RETURNS JSON AS $$
+DECLARE
+    user_record crs_users%ROWTYPE;
+BEGIN
+    SELECT * INTO user_record FROM crs_users 
+    WHERE crs_users.username = username 
+    AND crs_users.password = user_password;
     
-    let currentUser = null;
+    IF user_record.id IS NOT NULL THEN
+        RETURN json_build_object('success', true, 'user_id', user_record.id, 'username', user_record.username);
+    ELSE
+        RETURN json_build_object('success', false, 'error', 'Неверные имя или пароль');
+    END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Функция создания приложения
+CREATE OR REPLACE FUNCTION create_app(app_title TEXT, app_code TEXT, author_id INTEGER, public BOOLEAN DEFAULT true)
+RETURNS JSON AS $$
+DECLARE
+    new_app_id INTEGER;
+BEGIN
+    INSERT INTO crs_apps (title, code, author_id, is_public)
+    VALUES (app_title, app_code, author_id, public)
+    RETURNING id INTO new_app_id;
     
-    async function callFunction(funcName, params) {
-        const response = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${funcName}`, {
-            method: 'POST',
-            headers: {
-                'apikey': SUPABASE_ANON_KEY,
-                'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(params)
-        });
-        return await response.json();
-    }
-    
-    async function register() {
-        const username = prompt("Имя пользователя:");
-        if (!username) return;
-        const password = prompt("Пароль:");
-        if (!password) return;
-        const result = await callFunction('register_user', { username, user_password: password });
-        if (result.success) {
-            alert("Регистрация успешна! Теперь войдите.");
-        } else {
-            alert("Ошибка: " + result.error);
-        }
-    }
-    
-    async function login() {
-        const username = prompt("Имя пользователя:");
-        if (!username) return;
-        const password = prompt("Пароль:");
-        if (!password) return;
-        const result = await callFunction('login_user', { username, user_password: password });
-        if (result.success) {
-            currentUser = { id: result.user_id, username: result.username };
-            localStorage.setItem('crs_user', JSON.stringify(currentUser));
-            document.getElementById('currentUser').innerText = result.username;
-            alert("Добро пожаловать, " + result.username + "!");
-        } else {
-            alert("Неверные имя или пароль");
-        }
-    }
-    
-    async function saveApp() {
-        if (!currentUser) { alert("Сначала войдите"); return; }
-        const title = prompt("Название приложения:");
-        if (!title) return;
-        const code = document.getElementById('crsCode').value;
-        if (!code) { alert("Код пуст"); return; }
-        const result = await callFunction('create_app', { app_title: title, app_code: code, author_id: currentUser.id, public: true });
-        if (result.success) alert("Сохранено!");
-        else alert("Ошибка");
-    }
-    
-    async function getMyApps() {
-        if (!currentUser) { alert("Сначала войдите"); return []; }
-        const response = await fetch(`${SUPABASE_URL}/rest/v1/crs_apps?author_id=eq.${currentUser.id}&select=*`, {
-            headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` }
-        });
-        return await response.json();
-    }
-    
-    async function getAllApps() {
-        const response = await fetch(`${SUPABASE_URL}/rest/v1/crs_apps?select=*&order=created_at.desc`, {
-            headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` }
-        });
-        return await response.json();
-    }
-    
-    async function loadApp(id) {
-        const response = await fetch(`${SUPABASE_URL}/rest/v1/crs_apps?id=eq.${id}&select=*`, {
-            headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` }
-        });
-        const apps = await response.json();
-        if (apps.length > 0) {
-            document.getElementById('crsCode').value = apps[0].code;
-            updateLineNumbers();
-            executeCRS(apps[0].code);
-        }
-    }
-    
-    async function showMyApps() {
-        const apps = await getMyApps();
-        const modal = document.getElementById('modal');
-        const list = document.getElementById('modalList');
-        document.getElementById('modalTitle').innerText = "Мои приложения";
-        list.innerHTML = '';
-        for (let app of apps) {
-            let div = document.createElement('div');
-            div.className = 'app-item';
-            div.innerHTML = `<strong>${escapeHtml(app.title)}</strong><br><small>${new Date(app.created_at).toLocaleString()}</small>`;
-            div.onclick = () => { loadApp(app.id); modal.style.display = 'none'; };
-            list.appendChild(div);
-        }
-        modal.style.display = 'flex';
-    }
-    
-    async function showAllApps() {
-        const apps = await getAllApps();
-        const modal = document.getElementById('modal');
-        const list = document.getElementById('modalList');
-        document.getElementById('modalTitle').innerText = "Все приложения";
-        list.innerHTML = '';
-        for (let app of apps) {
-            let div = document.createElement('div');
-            div.className = 'app-item';
-            div.innerHTML = `<strong>${escapeHtml(app.title)}</strong><br><small>ID: ${app.author_id} | ${new Date(app.created_at).toLocaleString()}</small>`;
-            div.onclick = () => { loadApp(app.id); modal.style.display = 'none'; };
-            list.appendChild(div);
-        }
-        modal.style.display = 'flex';
-    }
-    
-    function escapeHtml(str) { return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m])); }
-    
-    const editor = document.getElementById('crsCode');
-    const renderDiv = document.getElementById('renderContainer');
-    const errorPanel = document.getElementById('errorPanel');
-    const lineNumbersDiv = document.getElementById('lineNumbers');
-    const lineCountInfo = document.getElementById('lineCountInfo');
-    
-    function updateLineNumbers() {
-        const lines = editor.value.split(/\r?\n/);
-        lineCountInfo.textContent = `строк: ${lines.length}`;
-        let html = '';
-        for (let i = 1; i <= lines.length; i++) html += `<div>${i}</div>`;
-        lineNumbersDiv.innerHTML = html;
-    }
-    editor.addEventListener('input', updateLineNumbers);
-    editor.addEventListener('scroll', () => { lineNumbersDiv.scrollTop = editor.scrollTop; });
-    
-    function executeCRS(code) {
-        errorPanel.style.display = 'none';
-        const openTag = "<CURSED-CODING>";
-        const closeTag = "</CCURSED-CODING>";
-        const openIdx = code.indexOf(openTag);
-        const closeIdx = code.indexOf(closeTag);
-        if (openIdx === -1 || closeIdx === -1) { renderDiv.innerHTML = '<div style="color:#b00;">Ошибка: нет тегов</div>'; return; }
-        const inner = code.substring(openIdx + openTag.length, closeIdx);
-        let resultHtml = "";
-        let scripts = [];
-        let i = 0;
-        const findClose = (start, tag) => {
-            const regex = new RegExp(`<cc\\.${tag}>`, 'i');
-            const match = inner.substring(start).match(regex);
-            if (!match) return null;
-            return { innerVal: inner.substring(start, start + match.index), nextPos: start + match.index + match[0].length };
-        };
-        while (i < inner.length) {
-            const openMatch = inner.substring(i).match(/<c\.([a-zA-Z]+)>/);
-            if (!openMatch) break;
-            const tag = openMatch[1].toLowerCase();
-            const innerStart = i + openMatch.index + openMatch[0].length;
-            const closed = findClose(innerStart, tag);
-            if (!closed) break;
-            const innerRaw = closed.innerVal;
-            const nextIdx = closed.nextPos;
-            if (tag === 'button') resultHtml += `<button class="crs-btn" style="background:#4CAF50; color:white; border:none; padding:8px 16px; margin:5px; border-radius:4px; cursor:pointer;">${escapeHtml(innerRaw.trim()) || 'Кнопка'}</button>`;
-            else if (tag === 'input') resultHtml += `<input type="text" class="crs-input" placeholder="${escapeHtml(innerRaw.trim())}" style="padding:8px; border:1px solid #ccc; border-radius:4px; margin:5px 0; width:100%;">`;
-            else if (tag === 'text') resultHtml += `<div style="margin:5px 0;">${escapeHtml(innerRaw)}</div>`;
-            else if (tag === 'title') resultHtml += `<h2 style="margin:10px 0;">${escapeHtml(innerRaw)}</h2>`;
-            else if (tag === 'script') scripts.push(innerRaw);
-            else resultHtml += `<div>${escapeHtml(innerRaw)}</div>`;
-            i = nextIdx;
-        }
-        renderDiv.innerHTML = resultHtml;
-        setTimeout(() => {
-            const scr = renderDiv.querySelectorAll('script');
-            scr.forEach(old => { const ns = document.createElement('script'); ns.textContent = old.textContent; old.parentNode.replaceChild(ns, old); });
-        }, 10);
-    }
-    
-    document.getElementById('runBtn').onclick = () => executeCRS(editor.value);
-    document.getElementById('saveAppBtn').onclick = saveApp;
-    document.getElementById('myAppsBtn').onclick = showMyApps;
-    document.getElementById('allAppsBtn').onclick = showAllApps;
-    document.getElementById('resetExample').onclick = () => {
-        editor.value = `<CURSED-CODING><c.title>Привет</c.title><c.text>Введи имя:</c.text><c.input></c.input><c.button>Сказать</c.button><c.script>let btn=document.querySelector('.crs-btn');let inp=document.querySelector('.crs-input');btn.onclick=()=>alert('Привет, '+inp.value);</c.script></CURSED-CODING>`;
-        updateLineNumbers();
-        executeCRS(editor.value);
-    };
-    document.getElementById('clearOutput').onclick = () => { renderDiv.innerHTML = '<div style="color:#aaa;">Очищено</div>'; errorPanel.style.display = 'none'; };
-    document.getElementById('loginBtn').onclick = login;
-    document.getElementById('registerBtn').onclick = register;
-    document.getElementById('closeModal').onclick = () => document.getElementById('modal').style.display = 'none';
-    
-    const saved = localStorage.getItem('crs_user');
-    if (saved) {
-        try { currentUser = JSON.parse(saved); document.getElementById('currentUser').innerText = currentUser.username; } catch(e) {}
-    }
-    updateLineNumbers();
-    executeCRS(editor.value);
-</script>
-</body>
-</html>
+    RETURN json_build_object('success', true, 'app_id', new_app_id);
+END;
+$$ LANGUAGE plpgsql;
+
+-- Проверяем существующих пользователей
+SELECT id, username, password FROM crs_users;
