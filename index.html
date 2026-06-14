@@ -3,378 +3,349 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CRS Light - простой язык программирования</title>
+    <title>CRS Language Explorer</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { background: #e8ecf2; font-family: 'Segoe UI', sans-serif; padding: 20px; }
-        .container { max-width: 1400px; margin: 0 auto; background: white; border: 1px solid #aaa; border-radius: 12px; overflow: hidden; }
-        .header { background: #4CAF50; color: white; padding: 15px 20px; font-size: 1.5rem; font-weight: bold; }
+        body { background: #e8ecf2; font-family: 'Courier New', monospace; padding: 20px; }
+        .container { max-width: 1400px; margin: 0 auto; background: white; border: 1px solid #aaa; }
+        .header { background: #d9dfe8; padding: 10px 16px; border-bottom: 1px solid #999; font-weight: bold; font-size: 1.3rem; display: flex; justify-content: space-between; }
         .workspace { display: flex; flex-wrap: wrap; }
         .editor-panel { flex: 1.2; min-width: 450px; border-right: 1px solid #ccc; }
-        .editor-header { background: #f5f5f5; padding: 10px; font-weight: bold; border-bottom: 1px solid #ccc; }
-        textarea { width: 100%; height: 400px; font-family: 'Courier New', monospace; font-size: 14px; padding: 15px; border: none; resize: vertical; outline: none; }
-        .button-bar { padding: 10px; background: #f5f5f5; border-top: 1px solid #ccc; display: flex; gap: 10px; flex-wrap: wrap; }
-        button { background: #4CAF50; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: bold; }
-        button:hover { background: #45a049; }
-        .output-panel { flex: 1; min-width: 350px; background: #fff; display: flex; flex-direction: column; }
-        .output-header { background: #f5f5f5; padding: 10px; font-weight: bold; border-bottom: 1px solid #ccc; }
-        .render-area { padding: 20px; background: white; min-height: 500px; overflow-y: auto; }
-        .error-box { background: #ffebee; border-left: 4px solid #f44336; padding: 10px; margin: 10px; display: none; }
-        .user-panel { background: #f5f5f5; padding: 8px 15px; border-bottom: 1px solid #ccc; display: flex; justify-content: space-between; align-items: center; }
+        .editor-header { background: #eef2f7; padding: 6px 12px; border-bottom: 1px solid #bbb; font-weight: bold; display: flex; justify-content: space-between; }
+        .editor-with-lines { display: flex; background: #fefef7; }
+        .line-numbers { background: #f0f2f5; padding: 12px 8px; text-align: right; font-family: monospace; font-size: 13px; line-height: 1.5; color: #888; border-right: 1px solid #ddd; min-width: 45px; }
+        .line-numbers div { white-space: pre; }
+        textarea { width: 100%; font-family: monospace; font-size: 13px; padding: 12px; border: none; background: #fefef7; resize: vertical; min-height: 450px; outline: none; }
+        .button-bar { padding: 10px; background: #eef2f7; border-top: 1px solid #ccc; display: flex; gap: 10px; flex-wrap: wrap; }
+        button { background: #e0e5ec; border: 1px solid #8a9cb0; padding: 6px 16px; font-family: monospace; font-weight: bold; cursor: pointer; }
+        button:hover { background: #d0d8e4; }
+        .output-panel { flex: 1; min-width: 350px; background: #fff; }
+        .output-header { background: #eef2f7; padding: 6px 12px; border-bottom: 1px solid #bbb; font-weight: bold; }
+        .render-area { padding: 16px; background: white; min-height: 500px; overflow-y: auto; }
+        .error-box { background: #fff0ee; border-left: 5px solid #c00; padding: 10px; color: #a00; display: none; margin: 10px; }
+        .user-panel { background: #eef2f7; padding: 5px 12px; border-bottom: 1px solid #ccc; display: flex; justify-content: space-between; align-items: center; }
         
-        /* Стили для кастомного alert */
         .crs-modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.5);
-            z-index: 10000;
-            display: flex;
-            justify-content: center;
-            align-items: center;
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5); z-index: 10000;
+            display: flex; justify-content: center; align-items: center;
         }
         .crs-modal-content {
-            background: white;
-            border-radius: 16px;
-            padding: 24px;
-            min-width: 300px;
-            max-width: 400px;
-            text-align: center;
+            background: white; border-radius: 12px; padding: 24px;
+            min-width: 300px; max-width: 400px; text-align: center;
             box-shadow: 0 10px 40px rgba(0,0,0,0.2);
-            animation: slideIn 0.2s ease;
         }
-        .crs-modal-content p {
-            font-size: 18px;
-            margin-bottom: 20px;
-            color: #333;
-        }
+        .crs-modal-content p { font-size: 18px; margin-bottom: 20px; }
         .crs-modal-content button {
-            background: #4CAF50;
-            color: white;
-            border: none;
-            padding: 10px 24px;
-            border-radius: 8px;
-            font-size: 16px;
-            cursor: pointer;
+            background: #4CAF50; color: white; border: none;
+            padding: 8px 24px; border-radius: 6px; cursor: pointer;
         }
-        .crs-modal-content button:hover { background: #45a049; }
-        @keyframes slideIn {
-            from { transform: scale(0.9); opacity: 0; }
-            to { transform: scale(1); opacity: 1; }
-        }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8); z-index: 1000; justify-content: center; align-items: center; }
+        .modal-content { background: white; padding: 20px; border-radius: 8px; max-width: 400px; width: 90%; }
+        .app-item { background: #f0f2f5; padding: 10px; margin: 10px 0; border-radius: 4px; cursor: pointer; }
+        .app-item:hover { background: #e0e5ec; }
     </style>
 </head>
 <body>
 <div class="container">
-    <div class="header">✨ CRS Light — простой язык для всех ✨</div>
+    <div class="header"><div>CRS LANGUAGE EXPLORER</div><span>&lt;c.tag&gt; ... &lt;cc.tag&gt;</span></div>
     <div class="user-panel">
-        <span>📝 Пиши как говоришь!</span>
-        <span style="font-size:12px;">💡 Пример: "когда нажата кнопка → показать Привет!"</span>
+        <span>👤 <span id="currentUser">Гость</span></span>
+        <div>
+            <button id="showLoginBtn">Войти</button>
+            <button id="showRegisterBtn">Регистрация</button>
+            <button id="logoutBtn" style="display:none;">Выйти</button>
+        </div>
     </div>
     <div class="workspace">
         <div class="editor-panel">
-            <div class="editor-header">📝 РЕДАКТОР CRS (пиши простыми словами)</div>
-            <textarea id="crsCode"></textarea>
+            <div class="editor-header"><span>РЕДАКТОР CRS</span><span id="lineCountInfo">строк: 0</span></div>
+            <div class="editor-with-lines">
+                <div class="line-numbers" id="lineNumbers"></div>
+                <textarea id="crsCode" rows="18"></textarea>
+            </div>
             <div class="button-bar">
                 <button id="runBtn">▶ ЗАПУСТИТЬ</button>
+                <button id="saveAppBtn">💾 СОХРАНИТЬ</button>
+                <button id="myAppsBtn">📱 МОИ</button>
+                <button id="allAppsBtn">🌐 ВСЕ</button>
                 <button id="resetExample">📋 ПРИМЕР</button>
                 <button id="clearOutput">🗑 ОЧИСТИТЬ</button>
             </div>
         </div>
         <div class="output-panel">
-            <div class="output-header">🎨 РЕЗУЛЬТАТ</div>
+            <div class="output-header">📺 РЕЗУЛЬТАТ</div>
             <div id="errorPanel" class="error-box"></div>
             <div id="renderContainer" class="render-area"></div>
         </div>
     </div>
 </div>
 
+<div id="loginModal" class="modal"><div class="modal-content">
+    <h3>Вход</h3>
+    <input type="text" id="loginUsername" placeholder="Имя"><br>
+    <input type="password" id="loginPassword" placeholder="Пароль"><br>
+    <button id="loginSubmitBtn">Войти</button>
+    <button id="closeLoginBtn">Отмена</button>
+</div></div>
+
+<div id="registerModal" class="modal"><div class="modal-content">
+    <h3>Регистрация</h3>
+    <input type="text" id="regUsername" placeholder="Имя"><br>
+    <input type="password" id="regPassword" placeholder="Пароль"><br>
+    <button id="registerSubmitBtn">Зарегистрироваться</button>
+    <button id="closeRegisterBtn">Отмена</button>
+</div></div>
+
+<div id="appsModal" class="modal"><div class="modal-content" style="max-width:500px;">
+    <h3 id="modalTitle">Приложения</h3>
+    <div id="modalList"></div>
+    <button id="closeAppsBtn">Закрыть</button>
+</div></div>
+
 <script>
-    // КАСТОМНЫЙ ALERT (свой)
-    function crsAlert(message) {
+    const SUPABASE_URL = 'https://tmjqafqecjpizawdruzq.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRtanFhZnFlY2pwaXphd2RydXpxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk4OTk2OTYsImV4cCI6MjA5NTQ3NTY5Nn0.8K7i5QEbjYWSvqw78P8RSR_abYM8uCRZbvC9Hp12bac';
+    
+    let currentUser = null;
+    
+    // Свой alert
+    window.alert = function(msg) {
         const old = document.querySelector('.crs-modal');
         if(old) old.remove();
         const div = document.createElement('div');
         div.className = 'crs-modal';
-        div.innerHTML = `
-            <div class="crs-modal-content">
-                <p>${String(message).replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m]))}</p>
-                <button onclick="this.closest('.crs-modal').remove()">OK</button>
-            </div>
-        `;
+        div.innerHTML = `<div class="crs-modal-content"><p>${String(msg).replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m]))}</p><button onclick="this.closest('.crs-modal').remove()">OK</button></div>`;
         document.body.appendChild(div);
+    };
+    
+    function showToast(msg) { alert(msg); }
+    
+    async function register() {
+        const username = document.getElementById('regUsername').value.trim();
+        const password = document.getElementById('regPassword').value;
+        if (!username || !password) { alert("Заполните поля"); return; }
+        try {
+            const res = await fetch(`${SUPABASE_URL}/rest/v1/crs_users`, {
+                method: 'POST',
+                headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password })
+            });
+            if (res.ok) {
+                alert("Регистрация успешна! Теперь войдите.");
+                document.getElementById('registerModal').style.display = 'none';
+            } else alert("Пользователь уже существует");
+        } catch(e) { alert("Ошибка"); }
     }
     
-    // Переопределяем alert
-    window.alert = crsAlert;
-    
-    const editor = document.getElementById('crsCode');
-    const renderDiv = document.getElementById('renderContainer');
-    const errorPanel = document.getElementById('errorPanel');
-    
-    function showError(msg) {
-        errorPanel.style.display = 'block';
-        errorPanel.innerHTML = `❌ ${msg}`;
-        setTimeout(() => errorPanel.style.display = 'none', 5000);
+    async function login() {
+        const username = document.getElementById('loginUsername').value.trim();
+        const password = document.getElementById('loginPassword').value;
+        if (!username || !password) { alert("Заполните поля"); return; }
+        try {
+            const res = await fetch(`${SUPABASE_URL}/rest/v1/crs_users?username=eq.${encodeURIComponent(username)}&select=*`, {
+                headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` }
+            });
+            const users = await res.json();
+            if (users && users.length > 0 && users[0].password === password) {
+                currentUser = { id: users[0].id, username: users[0].username };
+                localStorage.setItem('crs_user', JSON.stringify(currentUser));
+                document.getElementById('currentUser').innerText = currentUser.username;
+                document.getElementById('showLoginBtn').style.display = 'none';
+                document.getElementById('showRegisterBtn').style.display = 'none';
+                document.getElementById('logoutBtn').style.display = 'inline-block';
+                document.getElementById('loginModal').style.display = 'none';
+                alert("Добро пожаловать, " + currentUser.username);
+            } else alert("Неверные имя или пароль");
+        } catch(e) { alert("Ошибка"); }
     }
     
-    function escapeHtml(str) {
-        return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m]));
+    function logout() {
+        currentUser = null;
+        localStorage.removeItem('crs_user');
+        document.getElementById('currentUser').innerText = "Гость";
+        document.getElementById('showLoginBtn').style.display = 'inline-block';
+        document.getElementById('showRegisterBtn').style.display = 'inline-block';
+        document.getElementById('logoutBtn').style.display = 'none';
+        alert("Вы вышли");
     }
     
-    // ПЕРЕВОД CRS-ПРОСТОГО В НАСТОЯЩИЙ CSS
-    function parseSimpleCSS(cssCode) {
-        let realCSS = '';
-        const lines = cssCode.split('\n');
-        
-        const colorMap = {
-            'красный': 'red', 'зелёный': 'green', 'синий': 'blue', 'жёлтый': 'yellow',
-            'чёрный': 'black', 'белый': 'white', 'серый': 'gray', 'оранжевый': 'orange',
-            'розовый': 'pink', 'фиолетовый': 'purple', 'голубой': 'cyan'
-        };
-        
-        for (let line of lines) {
-            line = line.trim().toLowerCase();
-            if (line.startsWith('кнопка')) {
-                let selector = '.crs-btn';
-                if (line.includes('при наведении')) selector = '.crs-btn:hover';
-                else if (line.includes('при нажатии')) selector = '.crs-btn:active';
-                realCSS += `${selector} { `;
-                continue;
-            }
-            else if (line.startsWith('поле')) {
-                realCSS += `.crs-input { `;
-                continue;
-            }
-            else if (line.startsWith('страница') || line.startsWith('тело')) {
-                realCSS += `body { `;
-                continue;
-            }
-            else if (line.startsWith('карточка')) {
-                realCSS += `.card { `;
-                continue;
-            }
-            else if (line === '}') {
-                realCSS += `}`;
-                continue;
-            }
-            else if (line.includes('=')) {
-                let [prop, val] = line.split('=');
-                prop = prop.trim();
-                val = val.trim();
-                
-                // Перевод свойств
-                if (prop === 'фон') prop = 'background-color';
-                else if (prop === 'цвет') prop = 'color';
-                else if (prop === 'отступ') prop = 'padding';
-                else if (prop === 'отступ снаружи') prop = 'margin';
-                else if (prop === 'углы') prop = 'border-radius';
-                else if (prop === 'размер шрифта') prop = 'font-size';
-                else if (prop === 'шрифт') prop = 'font-family';
-                else if (prop === 'ширина') prop = 'width';
-                else if (prop === 'высота') prop = 'height';
-                else if (prop === 'выравнивание') prop = 'text-align';
-                else if (prop === 'рамка') prop = 'border';
-                else if (prop === 'тень') prop = 'box-shadow';
-                else if (prop === 'показ') prop = 'display';
-                else if (prop === 'нет') val = 'none';
-                
-                if (colorMap[val]) val = colorMap[val];
-                if (val === 'нет') val = 'none';
-                if (val === 'сплошной') val = 'solid';
-                
-                realCSS += `${prop}: ${val}; `;
-            }
-            else if (line === '}') {
-                realCSS += `} `;
-            }
+    async function saveApp() {
+        if (!currentUser) { alert("Сначала войдите"); return; }
+        const title = prompt("Название приложения:");
+        if (!title) return;
+        const code = document.getElementById('crsCode').value;
+        if (!code) { alert("Код пуст"); return; }
+        try {
+            await fetch(`${SUPABASE_URL}/rest/v1/crs_apps`, {
+                method: 'POST',
+                headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ title, code, author_id: currentUser.id, is_public: true })
+            });
+            alert("Сохранено!");
+        } catch(e) { alert("Ошибка"); }
+    }
+    
+    async function getMyApps() {
+        if (!currentUser) return [];
+        const res = await fetch(`${SUPABASE_URL}/rest/v1/crs_apps?author_id=eq.${currentUser.id}&select=*`, {
+            headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` }
+        });
+        return await res.json();
+    }
+    
+    async function getAllApps() {
+        const res = await fetch(`${SUPABASE_URL}/rest/v1/crs_apps?select=*&order=created_at.desc`, {
+            headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` }
+        });
+        return await res.json();
+    }
+    
+    function parseCRS(code) {
+        let html = ''; let scripts = []; let i = 0;
+        while (i < code.length) {
+            const openMatch = code.substring(i).match(/<c\.([a-zA-Z]+)>/);
+            if (!openMatch) break;
+            const tag = openMatch[1].toLowerCase();
+            const contentStart = i + openMatch.index + openMatch[0].length;
+            const closeTag = `<cc.${tag}>`;
+            const closePos = code.indexOf(closeTag, contentStart);
+            if (closePos === -1) break;
+            const innerRaw = code.substring(contentStart, closePos);
+            i = closePos + closeTag.length;
+            if (tag === 'button') html += `<button class="crs-btn" style="background:#4CAF50; color:white; border:none; padding:8px 16px; margin:5px; border-radius:4px; cursor:pointer;">${escapeHtml(innerRaw.trim()) || 'Кнопка'}</button>`;
+            else if (tag === 'input') html += `<input type="text" class="crs-input" placeholder="${escapeHtml(innerRaw.trim())}" style="padding:8px; border:1px solid #ccc; border-radius:4px; margin:5px 0; width:100%;">`;
+            else if (tag === 'text') html += `<div style="margin:5px 0;">${escapeHtml(innerRaw)}</div>`;
+            else if (tag === 'title') html += `<h2 style="margin:10px 0;">${escapeHtml(innerRaw)}</h2>`;
+            else if (tag === 'script') scripts.push(innerRaw);
+            else html += `<div>${escapeHtml(innerRaw)}</div>`;
         }
-        return realCSS;
+        return { html, scripts };
     }
     
-    // ПЕРЕВОД CRS-ПРОСТОГО JS В НАСТОЯЩИЙ
-    function parseSimpleJS(jsCode, containerId) {
-        let realJS = '';
-        let lines = jsCode.split('\n');
-        
-        for (let line of lines) {
-            line = line.trim();
-            
-            if (line.startsWith('когда нажата кнопка')) {
-                realJS += `document.querySelector('.crs-btn').onclick = function() { `;
-            }
-            else if (line.startsWith('когда изменён инпут')) {
-                realJS += `document.querySelector('.crs-input').oninput = function() { `;
-            }
-            else if (line.startsWith('показать')) {
-                let msg = line.replace('показать', '').trim();
-                realJS += `alert(${JSON.stringify(msg)}); `;
-            }
-            else if (line.startsWith('записать')) {
-                let msg = line.replace('записать', '').trim();
-                realJS += `console.log(${JSON.stringify(msg)}); `;
-            }
-            else if (line.startsWith('если')) {
-                let condition = line.match(/если (.+?) то/);
-                if (condition) {
-                    let cond = condition[1].trim();
-                    cond = cond.replace('равно', '===').replace('не равно', '!==');
-                    realJS += `if (${cond}) { `;
-                }
-            }
-            else if (line === 'иначе') {
-                realJS += `} else { `;
-            }
-            else if (line === 'то') {
-                // ничего, уже обработано
-            }
-            else if (line === '}') {
-                realJS += `} `;
-            }
-            else if (line.includes('=') && !line.includes('if')) {
-                let [varName, val] = line.split('=');
-                varName = varName.trim();
-                val = val.trim();
-                if (val === 'значение инпута') val = `document.querySelector('.crs-input').value`;
-                realJS += `let ${varName} = ${val}; `;
-            }
-            else if (line === 'конец') {
-                realJS += `} `;
-            }
-        }
-        return realJS;
-    }
-    
-    // ГЛАВНЫЙ ПАРСЕР CRS
     function executeCRS(code) {
-        errorPanel.style.display = 'none';
-        
         const openTag = "<CURSED-CODING>";
         const closeTag = "</CCURSED-CODING>";
         const openIdx = code.indexOf(openTag);
         const closeIdx = code.indexOf(closeTag);
-        
         if (openIdx === -1 || closeIdx === -1) {
-            renderDiv.innerHTML = '<div style="color:#c00;">❌ Ошибка: нужны теги &lt;CURSED-CODING&gt; ... &lt;/CCURSED-CODING&gt;</div>';
+            document.getElementById('renderContainer').innerHTML = '<div style="color:#b00;">Ошибка: нет тегов &lt;CURSED-CODING&gt;</div>';
             return;
         }
-        
-        let content = code.substring(openIdx + openTag.length, closeIdx);
-        let resultHtml = "";
-        let styles = [];
-        let scripts = [];
-        let i = 0;
-        
-        while (i < content.length) {
-            const openMatch = content.substring(i).match(/<c\.([a-zA-Z]+)>/);
-            if (!openMatch) break;
-            
-            const tag = openMatch[1].toLowerCase();
-            const contentStart = i + openMatch.index + openMatch[0].length;
-            const closeTagPattern = `<cc.${tag}>`;
-            const closePos = content.indexOf(closeTagPattern, contentStart);
-            if (closePos === -1) break;
-            
-            const innerRaw = content.substring(contentStart, closePos);
-            i = closePos + closeTagPattern.length;
-            
-            if (tag === 'button') {
-                resultHtml += `<button class="crs-btn" style="background:#4CAF50; color:white; border:none; padding:10px 20px; margin:5px; border-radius:8px; cursor:pointer;">${escapeHtml(innerRaw.trim()) || 'Кнопка'}</button>`;
-            }
-            else if (tag === 'input') {
-                resultHtml += `<input type="text" class="crs-input" placeholder="${escapeHtml(innerRaw.trim())}" style="padding:10px; border:1px solid #ccc; border-radius:8px; margin:5px 0; width:100%;">`;
-            }
-            else if (tag === 'text') {
-                resultHtml += `<div style="margin:10px 0;">${escapeHtml(innerRaw)}</div>`;
-            }
-            else if (tag === 'title') {
-                resultHtml += `<h2 style="margin:15px 0 10px;">${escapeHtml(innerRaw)}</h2>`;
-            }
-            else if (tag === 'style') {
-                styles.push(innerRaw);
-            }
-            else if (tag === 'script') {
-                scripts.push(innerRaw);
-            }
-            else {
-                resultHtml += `<div>${escapeHtml(innerRaw)}</div>`;
-            }
-        }
-        
-        // Обрабатываем CSS
-        let finalCSS = '';
-        for (let style of styles) {
-            finalCSS += parseSimpleCSS(style);
-        }
-        if (finalCSS) {
-            resultHtml = `<style>${finalCSS}</style>${resultHtml}`;
-        }
-        
-        renderDiv.innerHTML = resultHtml;
-        
-        // Обрабатываем JS
+        const inner = code.substring(openIdx + openTag.length, closeIdx);
+        const { html, scripts } = parseCRS(inner);
+        const renderDiv = document.getElementById('renderContainer');
+        renderDiv.innerHTML = html;
         setTimeout(() => {
-            for (let script of scripts) {
-                const realJS = parseSimpleJS(script);
-                if (realJS) {
-                    const scriptEl = document.createElement('script');
-                    scriptEl.textContent = realJS;
-                    renderDiv.appendChild(scriptEl);
-                }
-            }
-        }, 50);
+            scripts.forEach(scriptContent => {
+                const script = document.createElement('script');
+                script.textContent = scriptContent;
+                renderDiv.appendChild(script);
+            });
+        }, 10);
     }
     
-    function loadExample() {
-        editor.value = `<CURSED-CODING>
-
-<c.title> Привет! Это CRS Light </c.title>
-
-<c.text> Напиши своё имя: </c.text>
-<c.input> </c.input>
-<c.button> Сказать привет </c.button>
-
-<c.style>
-  кнопка
-    фон = зелёный
-    цвет = белый
-    отступ = 12px 24px
-    углы = 10px
-    рамка = нет
-  
-  кнопка при наведении
-    фон = тёмно-зелёный
-  
-  поле
-    отступ = 10px
-    ширина = 250px
-    углы = 8px
-    рамка = 1px сплошной серый
-</c.style>
-
-<c.script>
-  когда нажата кнопка
-    имя = значение инпута
-    если имя равно 
-      показать Введи своё имя!
-    иначе
-      показать Привет,  имя !
-</c.script>
-
-</CCURSED-CODING>`;
-        executeCRS(editor.value);
+    async function loadApp(app) {
+        document.getElementById('crsCode').value = app.code;
+        updateLineNumbers();
+        executeCRS(app.code);
+        alert("Загружено: " + app.title);
     }
+    
+    async function showMyApps() {
+        const apps = await getMyApps();
+        const modal = document.getElementById('appsModal');
+        const list = document.getElementById('modalList');
+        document.getElementById('modalTitle').innerText = "Мои приложения";
+        list.innerHTML = '';
+        for (let app of apps) {
+            let div = document.createElement('div');
+            div.className = 'app-item';
+            div.innerHTML = `<strong>${escapeHtml(app.title)}</strong><br><small>${new Date(app.created_at).toLocaleString()}</small>`;
+            div.onclick = () => { loadApp(app); modal.style.display = 'none'; };
+            list.appendChild(div);
+        }
+        modal.style.display = 'flex';
+    }
+    
+    async function showAllApps() {
+        const apps = await getAllApps();
+        const modal = document.getElementById('appsModal');
+        const list = document.getElementById('modalList');
+        document.getElementById('modalTitle').innerText = "Все приложения";
+        list.innerHTML = '';
+        for (let app of apps) {
+            let div = document.createElement('div');
+            div.className = 'app-item';
+            div.innerHTML = `<strong>${escapeHtml(app.title)}</strong><br><small>Автор: ${app.author_id} | ${new Date(app.created_at).toLocaleString()}</small>`;
+            div.onclick = () => { loadApp(app); modal.style.display = 'none'; };
+            list.appendChild(div);
+        }
+        modal.style.display = 'flex';
+    }
+    
+    function escapeHtml(str) { return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m])); }
+    
+    const editor = document.getElementById('crsCode');
+    const lineNumbersDiv = document.getElementById('lineNumbers');
+    const lineCountInfo = document.getElementById('lineCountInfo');
+    
+    function updateLineNumbers() {
+        const lines = editor.value.split(/\r?\n/);
+        lineCountInfo.textContent = `строк: ${lines.length}`;
+        let html = '';
+        for (let i = 1; i <= lines.length; i++) html += `<div>${i}</div>`;
+        lineNumbersDiv.innerHTML = html;
+    }
+    editor.addEventListener('input', updateLineNumbers);
+    editor.addEventListener('scroll', () => { lineNumbersDiv.scrollTop = editor.scrollTop; });
     
     document.getElementById('runBtn').onclick = () => executeCRS(editor.value);
-    document.getElementById('resetExample').onclick = () => loadExample();
-    document.getElementById('clearOutput').onclick = () => {
-        renderDiv.innerHTML = '<div style="color:#aaa; text-align:center; padding:40px;">✨ Результат появится здесь ✨</div>';
-        errorPanel.style.display = 'none';
+    document.getElementById('saveAppBtn').onclick = saveApp;
+    document.getElementById('myAppsBtn').onclick = showMyApps;
+    document.getElementById('allAppsBtn').onclick = showAllApps;
+    document.getElementById('resetExample').onclick = () => {
+        editor.value = `<CURSED-CODING>
+<c.title> Приветственная программа </c.title>
+<c.text> Введите ваше имя: </c.text>
+<c.input> </c.input>
+<c.button> Поздороваться </c.button>
+<c.script>
+  let btn = document.querySelector('.crs-btn');
+  let inp = document.querySelector('.crs-input');
+  btn.onclick = function() {
+    let name = inp.value;
+    if (name && name.trim()) alert('Привет, ' + name.trim() + '!');
+    else alert('Введите имя!');
+  };
+</c.script>
+</CURSED-CODING>`;
+        updateLineNumbers();
+        executeCRS(editor.value);
     };
+    document.getElementById('clearOutput').onclick = () => { document.getElementById('renderContainer').innerHTML = '<div style="color:#aaa; text-align:center; padding:40px;">✨ Результат появится здесь ✨</div>'; };
     
-    loadExample();
+    document.getElementById('showLoginBtn').onclick = () => document.getElementById('loginModal').style.display = 'flex';
+    document.getElementById('showRegisterBtn').onclick = () => document.getElementById('registerModal').style.display = 'flex';
+    document.getElementById('logoutBtn').onclick = logout;
+    document.getElementById('loginSubmitBtn').onclick = login;
+    document.getElementById('closeLoginBtn').onclick = () => document.getElementById('loginModal').style.display = 'none';
+    document.getElementById('registerSubmitBtn').onclick = register;
+    document.getElementById('closeRegisterBtn').onclick = () => document.getElementById('registerModal').style.display = 'none';
+    document.getElementById('closeAppsBtn').onclick = () => document.getElementById('appsModal').style.display = 'none';
+    
+    const saved = localStorage.getItem('crs_user');
+    if (saved) {
+        try { currentUser = JSON.parse(saved); 
+            document.getElementById('currentUser').innerText = currentUser.username;
+            document.getElementById('showLoginBtn').style.display = 'none';
+            document.getElementById('showRegisterBtn').style.display = 'none';
+            document.getElementById('logoutBtn').style.display = 'inline-block';
+        } catch(e) {}
+    }
+    updateLineNumbers();
+    executeCRS(editor.value);
 </script>
 </body>
 </html>
