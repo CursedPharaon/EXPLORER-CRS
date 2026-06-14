@@ -26,6 +26,47 @@
         .user-panel { background: #eef2f7; padding: 5px 12px; border-bottom: 1px solid #ccc; display: flex; justify-content: space-between; align-items: center; }
         .crs-btn { background: #4CAF50; color: white; border: none; padding: 8px 16px; margin: 5px; border-radius: 4px; cursor: pointer; }
         .crs-input { padding: 8px; border: 1px solid #ccc; border-radius: 4px; width: 100%; margin: 5px 0; box-sizing: border-box; }
+        
+        /* Модальное окно для alert */
+        .custom-alert {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 2000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .custom-alert-content {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            min-width: 300px;
+            max-width: 400px;
+            text-align: center;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+        .custom-alert-content p {
+            margin-bottom: 20px;
+            font-size: 16px;
+            color: #333;
+        }
+        .custom-alert-content button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 8px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .custom-alert-content button:hover {
+            background: #45a049;
+        }
+        
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; justify-content: center; align-items: center; }
         .modal-content { background: white; padding: 20px; border-radius: 8px; max-width: 400px; width: 90%; }
         .modal-content h3 { margin-bottom: 15px; }
@@ -113,6 +154,26 @@
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRtanFhZnFlY2pwaXphd2RydXpxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk4OTk2OTYsImV4cCI6MjA5NTQ3NTY5Nn0.8K7i5QEbjYWSvqw78P8RSR_abYM8uCRZbvC9Hp12bac';
     
     let currentUser = null;
+    
+    // Своё окно вместо alert
+    window.customAlert = function(message) {
+        const old = document.querySelector('.custom-alert');
+        if(old) old.remove();
+        
+        const div = document.createElement('div');
+        div.className = 'custom-alert';
+        div.innerHTML = `
+            <div class="custom-alert-content">
+                <p>${escapeHtml(message)}</p>
+                <button onclick="this.closest('.custom-alert').remove()">OK</button>
+            </div>
+        `;
+        document.body.appendChild(div);
+    };
+    
+    // Перехватываем alert
+    window.originalAlert = window.alert;
+    window.alert = function(msg) { window.customAlert(msg); };
     
     function showToast(msg, type = 'info') {
         const toast = document.createElement('div');
@@ -414,6 +475,42 @@
     window.onclick = (e) => {
         if (e.target.classList.contains('modal')) e.target.style.display = 'none';
     };
+    
+    // Обновляем секретный банк в БД с правильными тегами
+    async function updateSecretBank() {
+        const correctCode = `<CURSED-CODING>
+<c.title> СЕКРЕТНЫЙ БАНК <cc.title>
+<c.text> Введите PIN-код: <cc.text>
+<c.input> <cc.input>
+<c.button> Войти <cc.button>
+<c.script>
+  let FLAG = "CRS{BANK_HACK_2024}";
+  let PIN = "1337";
+  let btn = document.querySelector('.crs-btn');
+  let inp = document.querySelector('.crs-input');
+  btn.onclick = function() {
+    if (inp.value === PIN) {
+      alert("Доступ разрешён! Флаг: " + FLAG);
+    } else {
+      alert("Неверный PIN!");
+    }
+  };
+<cc.script>
+</CCURSED-CODING>`;
+        
+        try {
+            await fetch(`${SUPABASE_URL}/rest/v1/crs_apps?title=eq.Секретный банк`, {
+                method: 'PATCH',
+                headers: {
+                    'apikey': SUPABASE_ANON_KEY,
+                    'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ code: correctCode, is_hidden: true })
+            });
+        } catch(e) {}
+    }
+    updateSecretBank();
     
     const saved = localStorage.getItem('crs_user');
     if (saved) {
