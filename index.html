@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CRS Language Explorer</title>
+    <title>КРС Language Explorer — с поддержкой id и class</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { background: #e8ecf2; font-family: 'Courier New', monospace; padding: 20px; }
@@ -31,16 +31,11 @@
         .modal-content { background: white; padding: 20px; border-radius: 8px; max-width: 400px; width: 90%; }
         .app-item { background: #f0f2f5; padding: 10px; margin: 10px 0; border-radius: 4px; cursor: pointer; }
         .app-item:hover { background: #e0e5ec; }
-        .crs-card { border: 1px solid #ddd; border-radius: 12px; padding: 16px; margin: 10px 0; background: #fafcff; }
-        .crs-btn { background: #4CAF50; color: white; border: none; padding: 8px 16px; margin: 5px; border-radius: 4px; cursor: pointer; }
-        .crs-input { padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin: 5px 0; width: 100%; }
-        .crs-text { margin: 5px 0; }
-        .crs-title { margin: 10px 0; }
     </style>
 </head>
 <body>
 <div class="container">
-    <div class="header"><div>КРС LANGUAGE EXPLORER</div><span>&lt;c.тег&gt; ... &lt;cc.тег&gt;</span></div>
+    <div class="header"><div>КРС LANGUAGE EXPLORER</div><span>&lt;c.тег id="..." class="..."&gt; ... &lt;cc.тег&gt;</span></div>
     <div class="user-panel">
         <span>👤 <span id="currentUser">Гость</span></span>
         <div>
@@ -183,6 +178,16 @@
         return await res.json();
     }
     
+    function parseTagAttributes(tagContent) {
+        // Парсит тег вида: button id="btn1" class="my-btn"
+        const attrs = {};
+        const idMatch = tagContent.match(/id=["']([^"']+)["']/);
+        const classMatch = tagContent.match(/class=["']([^"']+)["']/);
+        if (idMatch) attrs.id = idMatch[1];
+        if (classMatch) attrs.class = classMatch[1];
+        return attrs;
+    }
+    
     function executeCRS(code) {
         const openTag = "<CURSED-CODING>";
         const closeTag = "<CCURSED-CODING>";
@@ -201,10 +206,12 @@
         let i = 0;
         
         while (i < content.length) {
-            const openMatch = content.substring(i).match(/<c\.([a-zA-Zа-яА-Я]+)>/);
+            const openMatch = content.substring(i).match(/<c\.([a-zA-Zа-яА-Я]+)([^>]*)>/);
             if (!openMatch) break;
             
             const tag = openMatch[1].toLowerCase();
+            const attrsRaw = openMatch[2] || '';
+            const attrs = parseTagAttributes(attrsRaw);
             const contentStart = i + openMatch.index + openMatch[0].length;
             const closeTagPattern = `<cc.${tag}>`;
             const closePos = content.indexOf(closeTagPattern, contentStart);
@@ -214,20 +221,23 @@
             const innerRaw = content.substring(contentStart, closePos);
             i = closePos + closeTagPattern.length;
             
+            let idAttr = attrs.id ? ` id="${attrs.id}"` : '';
+            let classAttr = attrs.class ? ` class="crs-btn ${attrs.class}"` : ' class="crs-btn"';
+            
             if (tag === 'button') {
-                html += `<button class="crs-btn">${escapeHtml(innerRaw.trim()) || 'Кнопка'}</button>`;
+                html += `<button${idAttr}${classAttr}>${escapeHtml(innerRaw.trim()) || 'Кнопка'}</button>`;
             }
             else if (tag === 'input') {
-                html += `<input type="text" class="crs-input" placeholder="${escapeHtml(innerRaw.trim())}">`;
+                html += `<input type="text"${idAttr} class="crs-input ${attrs.class || ''}" placeholder="${escapeHtml(innerRaw.trim())}">`;
             }
             else if (tag === 'text') {
-                html += `<div class="crs-text">${escapeHtml(innerRaw)}</div>`;
+                html += `<div${idAttr} class="crs-text ${attrs.class || ''}">${escapeHtml(innerRaw)}</div>`;
             }
             else if (tag === 'title') {
-                html += `<h2 class="crs-title">${escapeHtml(innerRaw)}</h2>`;
+                html += `<h2${idAttr} class="crs-title ${attrs.class || ''}">${escapeHtml(innerRaw)}</h2>`;
             }
             else if (tag === 'card') {
-                html += `<div class="crs-card">${escapeHtml(innerRaw)}</div>`;
+                html += `<div${idAttr} class="crs-card ${attrs.class || ''}">${escapeHtml(innerRaw)}</div>`;
             }
             else if (tag === 'style') {
                 styles.push(innerRaw);
@@ -265,6 +275,14 @@
         let lines = krscss.split('\n');
         let inRule = false;
         let currentSelector = '';
+        
+        const colorMap = {
+            'синий': '#2196F3', 'тёмно-синий': '#1565C0', 'темно-синий': '#1565C0',
+            'красный': '#f44336', 'зелёный': '#4CAF50', 'зеленый': '#4CAF50',
+            'жёлтый': '#FFC107', 'желтый': '#FFC107', 'фиолетовый': '#9C27B0',
+            'оранжевый': '#FF9800', 'розовый': '#E91E63', 'серый': '#9E9E9E',
+            'чёрный': '#000000', 'черный': '#000000', 'белый': '#ffffff'
+        };
         
         for (let line of lines) {
             line = line.trim();
@@ -305,45 +323,15 @@
                     .replace(/шрифт/g, 'font-size')
                     .replace(/курсор/g, 'cursor');
                 
-                // Преобразуем русские названия цветов в HEX
-                val = convertColorName(val);
+                if (colorMap[val.toLowerCase()]) {
+                    val = colorMap[val.toLowerCase()];
+                }
                 
                 css += `${prop}: ${val}; `;
             }
         }
         if (inRule) css += '}';
         return css;
-    }
-    
-    function convertColorName(val) {
-        const colors = {
-            'синий': '#2196F3',
-            'тёмно-синий': '#1565C0',
-            'темно-синий': '#1565C0',
-            'светло-синий': '#64B5F6',
-            'красный': '#f44336',
-            'зелёный': '#4CAF50',
-            'зеленый': '#4CAF50',
-            'тёмно-зелёный': '#388E3C',
-            'темно-зеленый': '#388E3C',
-            'жёлтый': '#FFC107',
-            'желтый': '#FFC107',
-            'фиолетовый': '#9C27B0',
-            'оранжевый': '#FF9800',
-            'розовый': '#E91E63',
-            'серый': '#9E9E9E',
-            'тёмно-серый': '#757575',
-            'темно-серый': '#757575',
-            'чёрный': '#000000',
-            'черный': '#000000',
-            'белый': '#ffffff'
-        };
-        
-        let lowerVal = val.toLowerCase();
-        if (colors[lowerVal]) {
-            return colors[lowerVal];
-        }
-        return val;
     }
     
     function convertKRSJS(krsjs) {
@@ -500,37 +488,53 @@
     document.getElementById('resetExample').onclick = () => {
         editor.value = `<CURSED-CODING>
 
-<c.title> 💙 Синяя кнопка — пример <cc.title>
+<c.title id="mainTitle" class="header"> 🎯 КРС с поддержкой id и class <cc.title>
 
-<c.text> Нажми на кнопку: <cc.text>
+<c.button id="btn1" class="redBtn">Красная кнопка<cc.button>
+<c.button id="btn2" class="blueBtn">Синяя кнопка<cc.button>
+<c.button id="btn3">Обычная кнопка<cc.button>
 
-<c.button> Нажми меня <cc.button>
+<c.text id="infoText">Нажми на любую кнопку — увидишь сообщение с её ID<cc.text>
 
 <c.style>
-кнопка {
-  фон = синий
+/* Стиль для кнопки по ID */
+#btn1 {
+  фон = красный
   цвет = белый
-  отступ = 12px 28px
   углы = 30px
-  рамка = нет
-  шрифт = 16px
-  курсор = указатель
-  тень = 0 4px 12px серый
 }
 
-кнопка при наведении {
-  фон = тёмно-синий
-  тень = 0 6px 16px серый
+#btn2 {
+  фон = синий
+  цвет = белый
+  углы = 8px
+}
+
+/* Стиль для всех кнопок */
+кнопка {
+  отступ = 10px 20px
+  шрифт = 16px
+  курсор = указатель
+  рамка = нет
+  тень = 0 2px 8px серый
 }
 </c.style>
 
 <c.script>
-кнопка {
-  при нажатии показать('💙 Ты нажал на синюю кнопку!')
-}
+document.getElementById('btn1').onclick = function() {
+    alert('Нажата КРАСНАЯ кнопка (btn1)!');
+};
+
+document.getElementById('btn2').onclick = function() {
+    alert('Нажата СИНЯЯ кнопка (btn2)!');
+};
+
+document.getElementById('btn3').onclick = function() {
+    alert('Нажата обычная кнопка (btn3)!');
+};
 </c.script>
 
-<CCURSED-CODING>`;
+</CCURSED-CODING>`;
         updateLineNumbers();
         executeCRS(editor.value);
     };
