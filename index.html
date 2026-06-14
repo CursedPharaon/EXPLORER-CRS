@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>КРС Language Explorer — с поддержкой id и class</title>
+    <title>КРС Language Explorer — Полная версия</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { background: #e8ecf2; font-family: 'Courier New', monospace; padding: 20px; }
@@ -31,11 +31,20 @@
         .modal-content { background: white; padding: 20px; border-radius: 8px; max-width: 400px; width: 90%; }
         .app-item { background: #f0f2f5; padding: 10px; margin: 10px 0; border-radius: 4px; cursor: pointer; }
         .app-item:hover { background: #e0e5ec; }
+        .crs-card { border: 1px solid #ddd; border-radius: 12px; padding: 16px; margin: 10px 0; background: #fafcff; }
+        .crs-btn { background: #4CAF50; color: white; border: none; padding: 8px 16px; margin: 5px; border-radius: 4px; cursor: pointer; }
+        .crs-input { padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin: 5px 0; width: 100%; }
+        .crs-text { margin: 5px 0; }
+        .crs-title { margin: 10px 0; }
+        .crs-select { padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin: 5px 0; }
+        .crs-radio-group { margin: 5px 0; }
+        .crs-radio-group label { margin-right: 15px; }
+        .crs-range { width: 100%; margin: 5px 0; }
     </style>
 </head>
 <body>
 <div class="container">
-    <div class="header"><div>КРС LANGUAGE EXPLORER</div><span>&lt;c.тег id="..." class="..."&gt; ... &lt;cc.тег&gt;</span></div>
+    <div class="header"><div>КРС LANGUAGE EXPLORER — Полная версия</div><span>&lt;c.тег&gt; ... &lt;cc.тег&gt;</span></div>
     <div class="user-panel">
         <span>👤 <span id="currentUser">Гость</span></span>
         <div>
@@ -179,7 +188,6 @@
     }
     
     function parseTagAttributes(tagContent) {
-        // Парсит тег вида: button id="btn1" class="my-btn"
         const attrs = {};
         const idMatch = tagContent.match(/id=["']([^"']+)["']/);
         const classMatch = tagContent.match(/class=["']([^"']+)["']/);
@@ -218,14 +226,14 @@
             
             if (closePos === -1) break;
             
-            const innerRaw = content.substring(contentStart, closePos);
+            let innerRaw = content.substring(contentStart, closePos);
             i = closePos + closeTagPattern.length;
             
             let idAttr = attrs.id ? ` id="${attrs.id}"` : '';
-            let classAttr = attrs.class ? ` class="crs-btn ${attrs.class}"` : ' class="crs-btn"';
+            let classAttr = attrs.class ? ` class="${attrs.class}"` : '';
             
             if (tag === 'button') {
-                html += `<button${idAttr}${classAttr}>${escapeHtml(innerRaw.trim()) || 'Кнопка'}</button>`;
+                html += `<button${idAttr} class="crs-btn ${attrs.class || ''}">${escapeHtml(innerRaw.trim()) || 'Кнопка'}</button>`;
             }
             else if (tag === 'input') {
                 html += `<input type="text"${idAttr} class="crs-input ${attrs.class || ''}" placeholder="${escapeHtml(innerRaw.trim())}">`;
@@ -238,6 +246,28 @@
             }
             else if (tag === 'card') {
                 html += `<div${idAttr} class="crs-card ${attrs.class || ''}">${escapeHtml(innerRaw)}</div>`;
+            }
+            else if (tag === 'select') {
+                const options = innerRaw.split(',').map(opt => opt.trim());
+                let selectHtml = `<select${idAttr} class="crs-select ${attrs.class || ''}">`;
+                for (let opt of options) {
+                    selectHtml += `<option value="${escapeHtml(opt)}">${escapeHtml(opt)}</option>`;
+                }
+                selectHtml += `</select>`;
+                html += selectHtml;
+            }
+            else if (tag === 'radio') {
+                const options = innerRaw.split(',').map(opt => opt.trim());
+                let radioHtml = `<div${idAttr} class="crs-radio-group ${attrs.class || ''}">`;
+                for (let opt of options) {
+                    radioHtml += `<label><input type="radio" name="crs_radio_${attrs.id || 'group'}" value="${escapeHtml(opt)}"> ${escapeHtml(opt)}</label>`;
+                }
+                radioHtml += `</div>`;
+                html += radioHtml;
+            }
+            else if (tag === 'range') {
+                let defaultValue = innerRaw.trim() || '50';
+                html += `<input type="range" min="0" max="100" value="${defaultValue}"${idAttr} class="crs-range ${attrs.class || ''}">`;
             }
             else if (tag === 'style') {
                 styles.push(innerRaw);
@@ -296,7 +326,9 @@
                     .replace(/поле/g, '.crs-input')
                     .replace(/карточка/g, '.crs-card')
                     .replace(/текст/g, '.crs-text')
-                    .replace(/заголовок/g, '.crs-title');
+                    .replace(/заголовок/g, '.crs-title')
+                    .replace(/выпадающий список/g, '.crs-select')
+                    .replace(/ползунок/g, '.crs-range');
                 css += `${currentSelector} { `;
                 inRule = true;
                 continue;
@@ -335,95 +367,124 @@
     }
     
     function convertKRSJS(krsjs) {
+        // Новый парсер КРС-ЖС с поддержкой переменных
         let js = '';
         let lines = krsjs.split('\n');
-        let inBlock = false;
-        let currentSelector = '';
-        let currentAction = '';
-        let actionContent = '';
+        
+        // Собираем все переменные и их значения
+        let variables = {};
+        let collectedLines = [];
         
         for (let line of lines) {
             let trimmed = line.trim();
             if (trimmed === '') continue;
             
+            // Обработка объявления переменных let x = значение
+            let letMatch = trimmed.match(/^let\s+([a-zA-Zа-яА-Я_][a-zA-Zа-яА-Я0-9_]*)\s*=\s*(.+)$/);
+            if (letMatch) {
+                let varName = letMatch[1];
+                let varValue = letMatch[2].replace(/;$/, '').trim();
+                variables[varName] = varValue;
+                collectedLines.push(`let ${varName} = ${varValue};`);
+                continue;
+            }
+            
+            // Обработка изменения переменной x = новоеЗначение
+            let assignMatch = trimmed.match(/^([a-zA-Zа-яА-Я_][a-zA-Zа-яА-Я0-9_]*)\s*=\s*(.+)$/);
+            if (assignMatch && !trimmed.startsWith('let ') && !trimmed.includes('{') && !trimmed.includes('}')) {
+                let varName = assignMatch[1];
+                let varValue = assignMatch[2].replace(/;$/, '').trim();
+                collectedLines.push(`${varName} = ${varValue};`);
+                continue;
+            }
+            
+            // Блоки типа "кнопка {"
             if (trimmed.endsWith('{') && !trimmed.includes('при')) {
-                if (inBlock) {
-                    js += generateJSCode(currentSelector, currentAction, actionContent);
-                }
-                currentSelector = trimmed.substring(0, trimmed.length - 1).trim();
-                inBlock = true;
-                currentAction = '';
-                actionContent = '';
+                let selector = trimmed.substring(0, trimmed.length - 1).trim();
+                let cssSelector = '';
+                if (selector === 'кнопка') cssSelector = '.crs-btn';
+                else if (selector === 'поле') cssSelector = '.crs-input';
+                else if (selector === 'карточка') cssSelector = '.crs-card';
+                else if (selector === 'текст') cssSelector = '.crs-text';
+                else if (selector === 'заголовок') cssSelector = '.crs-title';
+                else if (selector === 'выпадающий список') cssSelector = '.crs-select';
+                else if (selector === 'ползунок') cssSelector = '.crs-range';
+                else cssSelector = selector;
+                
+                collectedLines.push(`
+                (function() {
+                    var elements = document.querySelectorAll('${cssSelector}');
+                    for (var i = 0; i < elements.length; i++) {
+                        elements[i].addEventListener('click', function(event) {
+                `);
                 continue;
             }
             
+            // Закрывающая скобка }
             if (trimmed === '}') {
-                if (inBlock) {
-                    js += generateJSCode(currentSelector, currentAction, actionContent);
-                }
-                inBlock = false;
-                currentSelector = '';
-                currentAction = '';
-                actionContent = '';
+                collectedLines.push(`
+                        });
+                    }
+                })();
+                `);
                 continue;
             }
             
-            if (inBlock && trimmed.startsWith('при')) {
-                if (trimmed.startsWith('при нажатии')) {
-                    currentAction = 'click';
-                    actionContent = trimmed.replace('при нажатии', '').trim();
-                }
-                else if (trimmed.startsWith('при вводе')) {
-                    currentAction = 'input';
-                    actionContent = trimmed.replace('при вводе', '').trim();
-                }
-                else if (trimmed.startsWith('при наведении')) {
-                    currentAction = 'mouseenter';
-                    actionContent = trimmed.replace('при наведении', '').trim();
-                }
+            // Обработка действий внутри блока
+            if (trimmed.startsWith('при нажатии')) {
+                let action = trimmed.replace('при нажатии', '').trim();
+                let jsAction = convertAction(action, variables);
+                collectedLines.push(jsAction);
+                continue;
             }
+            
+            if (trimmed.startsWith('при вводе')) {
+                let action = trimmed.replace('при вводе', '').trim();
+                let jsAction = convertAction(action, variables);
+                collectedLines.push(jsAction);
+                continue;
+            }
+            
+            if (trimmed.startsWith('при наведении')) {
+                let action = trimmed.replace('при наведении', '').trim();
+                let jsAction = convertAction(action, variables);
+                collectedLines.push(jsAction);
+                continue;
+            }
+            
+            // Обычные строки кода
+            collectedLines.push(trimmed);
         }
         
-        if (inBlock) {
-            js += generateJSCode(currentSelector, currentAction, actionContent);
-        }
-        
+        js = collectedLines.join('\n');
         return js;
     }
     
-    function generateJSCode(selector, action, actionCode) {
-        if (!selector || !action) return '';
+    function convertAction(action, variables) {
+        // Замена показать('текст') на alert('текст')
+        let result = action;
         
-        let cssSelector = '';
-        if (selector === 'кнопка') cssSelector = '.crs-btn';
-        else if (selector === 'поле') cssSelector = '.crs-input';
-        else if (selector === 'карточка') cssSelector = '.crs-card';
-        else if (selector === 'текст') cssSelector = '.crs-text';
-        else if (selector === 'заголовок') cssSelector = '.crs-title';
-        else cssSelector = selector;
-        
-        let eventName = '';
-        if (action === 'click') eventName = 'click';
-        else if (action === 'input') eventName = 'input';
-        else if (action === 'mouseenter') eventName = 'mouseenter';
-        else return '';
-        
-        let jsCode = actionCode;
-        jsCode = jsCode.replace(/показать\(/g, 'alert(');
-        jsCode = jsCode.replace(/значение/g, 'this.value');
-        jsCode = jsCode.replace(/имя/g, 'this.value');
-        jsCode = jsCode.replace(/текст/g, 'this.innerText');
-        
-        return `
-        (function() {
-            var elements = document.querySelectorAll('${cssSelector}');
-            for (var i = 0; i < elements.length; i++) {
-                elements[i].addEventListener('${eventName}', function(event) {
-                    ${jsCode}
-                });
+        // Обработка показать('текст' + переменная)
+        result = result.replace(/показать\(([^)]+)\)/g, function(match, content) {
+            // Замена переменных внутри строки
+            let processed = content;
+            for (let varName in variables) {
+                let regex = new RegExp('\\b' + varName + '\\b', 'g');
+                processed = processed.replace(regex, variables[varName]);
             }
-        })();
-        `;
+            // Замена значение на this.value
+            processed = processed.replace(/значение/g, 'this.value');
+            processed = processed.replace(/имя/g, 'this.value');
+            processed = processed.replace(/текст/g, 'this.innerText');
+            return `alert(${processed})`;
+        });
+        
+        // Обработка других функций
+        result = result.replace(/консоль\.лог\(/g, 'console.log(');
+        result = result.replace(/локальное\.сохранить\(/g, 'localStorage.setItem(');
+        result = result.replace(/локальное\.получить\(/g, 'localStorage.getItem(');
+        
+        return result + ';';
     }
     
     async function loadApp(app) {
@@ -488,50 +549,61 @@
     document.getElementById('resetExample').onclick = () => {
         editor.value = `<CURSED-CODING>
 
-<c.title id="mainTitle" class="header"> 🎯 КРС с поддержкой id и class <cc.title>
+<c.title> 🎉 КРС — Полная версия с переменными <cc.title>
 
-<c.button id="btn1" class="redBtn">Красная кнопка<cc.button>
-<c.button id="btn2" class="blueBtn">Синяя кнопка<cc.button>
-<c.button id="btn3">Обычная кнопка<cc.button>
+<c.text> Твой возраст: <cc.text>
+<c.input id="ageInput" placeholder="Введи возраст"> <cc.input>
 
-<c.text id="infoText">Нажми на любую кнопку — увидишь сообщение с её ID<cc.text>
+<c.text> Выбери любимый цвет: <cc.text>
+<c.radio id="colorRadio">Красный, Синий, Зелёный<cc.radio>
+
+<c.text> Выбери сложность: <cc.text>
+<c.select id="difficultySelect">Лёгкая, Средняя, Сложная<cc.select>
+
+<c.text> Громкость: <cc.text>
+<c.range id="volumeRange">50<cc.range>
+
+<c.button id="showBtn">Показать информацию<cc.button>
+
+<c.text id="result"></c.text>
 
 <c.style>
-/* Стиль для кнопки по ID */
-#btn1 {
-  фон = красный
-  цвет = белый
-  углы = 30px
-}
-
-#btn2 {
+кнопка {
   фон = синий
   цвет = белый
-  углы = 8px
-}
-
-/* Стиль для всех кнопок */
-кнопка {
+  углы = 30px
   отступ = 10px 20px
   шрифт = 16px
   курсор = указатель
-  рамка = нет
-  тень = 0 2px 8px серый
+}
+
+кнопка при наведении {
+  фон = тёмно-синий
+}
+
+поле {
+  отступ = 8px
+  углы = 8px
+  ширина = 200px
+}
+
+выпадающий список {
+  отступ = 8px
+  углы = 8px
 }
 </c.style>
 
 <c.script>
-document.getElementById('btn1').onclick = function() {
-    alert('Нажата КРАСНАЯ кнопка (btn1)!');
-};
+let возраст = 0;
+let любимыйЦвет = "";
+let сложность = "";
+let громкость = 50;
 
-document.getElementById('btn2').onclick = function() {
-    alert('Нажата СИНЯЯ кнопка (btn2)!');
-};
+возраст = 25;
 
-document.getElementById('btn3').onclick = function() {
-    alert('Нажата обычная кнопка (btn3)!');
-};
+кнопка {
+  при нажатии показать('Привет! Твой возраст: ' + возраст + ', любимый цвет: ' + любимыйЦвет)
+}
 </c.script>
 
 </CCURSED-CODING>`;
