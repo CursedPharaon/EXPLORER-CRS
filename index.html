@@ -41,6 +41,8 @@
         .app-item { background: #f0f2f5; padding: 10px; margin: 10px 0; border-radius: 4px; cursor: pointer; }
         .app-item:hover { background: #e0e5ec; }
         .apps-modal { max-width: 600px; max-height: 80%; overflow: auto; }
+        
+        .code-hidden { background: #1a1a2e; color: #888; padding: 40px; text-align: center; border-radius: 8px; font-style: italic; }
     </style>
 </head>
 <body>
@@ -78,7 +80,6 @@
     </div>
 </div>
 
-<!-- Модальное окно входа -->
 <div id="loginModal" class="modal">
     <div class="modal-content">
         <h3>Вход</h3>
@@ -91,7 +92,6 @@
     </div>
 </div>
 
-<!-- Модальное окно регистрации -->
 <div id="registerModal" class="modal">
     <div class="modal-content">
         <h3>Регистрация</h3>
@@ -104,7 +104,6 @@
     </div>
 </div>
 
-<!-- Модальное окно приложений -->
 <div id="appsModal" class="modal">
     <div class="modal-content apps-modal">
         <h3 id="modalTitle">Приложения</h3>
@@ -118,6 +117,7 @@
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRtanFhZnFlY2pwaXphd2RydXpxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk4OTk2OTYsImV4cCI6MjA5NTQ3NTY5Nn0.8K7i5QEbjYWSvqw78P8RSR_abYM8uCRZbvC9Hp12bac';
     
     let currentUser = null;
+    let currentAppsList = [];
     
     function showToast(msg, type = 'info') {
         const toast = document.createElement('div');
@@ -152,13 +152,13 @@
         
         const result = await callFunction('register_user', { username, user_password: password });
         if (result && result.success) {
-            currentUser = { id: result.user_id, username: result.username };
-            localStorage.setItem('crs_user', JSON.stringify(currentUser));
-            updateUI();
+            showToast("Регистрация успешна! Теперь войдите.", "success");
             document.getElementById('registerModal').style.display = 'none';
             document.getElementById('regUsername').value = '';
             document.getElementById('regPassword').value = '';
-            showToast("Добро пожаловать, " + currentUser.username + "!", "success");
+            document.getElementById('loginUsername').value = username;
+            document.getElementById('loginPassword').value = password;
+            document.getElementById('loginModal').style.display = 'flex';
         } else {
             showToast("Ошибка: " + (result?.error || "пользователь уже существует"), "error");
         }
@@ -169,17 +169,29 @@
         const password = document.getElementById('loginPassword').value;
         if (!username || !password) { showToast("Заполните все поля", "error"); return; }
         
-        const result = await callFunction('get_user', { username, user_password: password });
-        if (result && result.success) {
-            currentUser = { id: result.user_id, username: result.username };
-            localStorage.setItem('crs_user', JSON.stringify(currentUser));
-            updateUI();
-            document.getElementById('loginModal').style.display = 'none';
-            document.getElementById('loginUsername').value = '';
-            document.getElementById('loginPassword').value = '';
-            showToast("Добро пожаловать, " + currentUser.username + "!", "success");
-        } else {
-            showToast("Неверные имя или пароль", "error");
+        // Прямой запрос к таблице пользователей
+        try {
+            const response = await fetch(`${SUPABASE_URL}/rest/v1/crs_users?username=eq.${encodeURIComponent(username)}&select=*`, {
+                headers: {
+                    'apikey': SUPABASE_ANON_KEY,
+                    'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+                }
+            });
+            const users = await response.json();
+            
+            if (users && users.length > 0 && users[0].password === password) {
+                currentUser = { id: users[0].id, username: users[0].username };
+                localStorage.setItem('crs_user', JSON.stringify(currentUser));
+                updateUI();
+                document.getElementById('loginModal').style.display = 'none';
+                document.getElementById('loginUsername').value = '';
+                document.getElementById('loginPassword').value = '';
+                showToast("Добро пожаловать, " + currentUser.username + "!", "success");
+            } else {
+                showToast("Неверные имя или пароль", "error");
+            }
+        } catch(e) {
+            showToast("Ошибка подключения", "error");
         }
     }
     
@@ -210,6 +222,7 @@
         if (!title) return;
         const code = document.getElementById('crsCode').value;
         if (!code) { showToast("Код пуст", "error"); return; }
+        
         const result = await callFunction('create_app', { app_title: title, app_code: code, author_id: currentUser.id });
         if (result && result.success) showToast("Сохранено!", "success");
         else showToast("Ошибка сохранения", "error");
@@ -230,21 +243,22 @@
         return await response.json();
     }
     
-    async function loadApp(id) {
-        const response = await fetch(`${SUPABASE_URL}/rest/v1/crs_apps?id=eq.${id}&select=*`, {
-            headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` }
-        });
-        const apps = await response.json();
-        if (apps.length > 0) {
-            document.getElementById('crsCode').value = apps[0].code;
+    async function loadApp(app) {
+        if (app.is_hidden) {
+            document.getElementById('crsCode').value = '⚠️ КОД СКРЫТ (HIDDEN MODE) ⚠️\n\nЭто приложение находится в скрытом режиме. Код не отображается.\n\nЧтобы увидеть код, автор должен сделать его публичным.';
+            document.getElementById('renderContainer').innerHTML = '<div class="code-hidden">🔒 РЕЖИМ HIDDEN<br><br>Код этого приложения скрыт.<br>Приложение запущено в режиме предпросмотра.</div>';
             updateLineNumbers();
-            executeCRS(apps[0].code);
-            showToast("Загружено: " + apps[0].title, "success");
+            return;
         }
+        document.getElementById('crsCode').value = app.code;
+        updateLineNumbers();
+        executeCRS(app.code);
+        showToast("Загружено: " + app.title, "success");
     }
     
     async function showMyApps() {
         const apps = await getMyApps();
+        currentAppsList = apps;
         const modal = document.getElementById('appsModal');
         const list = document.getElementById('modalList');
         document.getElementById('modalTitle').innerText = "Мои приложения";
@@ -255,8 +269,9 @@
         for (let app of apps) {
             let div = document.createElement('div');
             div.className = 'app-item';
-            div.innerHTML = `<strong>${escapeHtml(app.title)}</strong><br><small>${new Date(app.created_at).toLocaleString()}</small>`;
-            div.onclick = () => { loadApp(app.id); modal.style.display = 'none'; };
+            let hiddenBadge = app.is_hidden ? ' 🔒 HIDDEN' : ' 🔓 PUBLIC';
+            div.innerHTML = `<strong>${escapeHtml(app.title)}${hiddenBadge}</strong><br><small>${new Date(app.created_at).toLocaleString()}</small>`;
+            div.onclick = () => { loadApp(app); modal.style.display = 'none'; };
             list.appendChild(div);
         }
         modal.style.display = 'flex';
@@ -264,6 +279,7 @@
     
     async function showAllApps() {
         const apps = await getAllApps();
+        currentAppsList = apps;
         const modal = document.getElementById('appsModal');
         const list = document.getElementById('modalList');
         document.getElementById('modalTitle').innerText = "Все приложения";
@@ -274,8 +290,10 @@
         for (let app of apps) {
             let div = document.createElement('div');
             div.className = 'app-item';
-            div.innerHTML = `<strong>${escapeHtml(app.title)}</strong><br><small>Автор: ${app.author_id} | ${new Date(app.created_at).toLocaleString()}</small>`;
-            div.onclick = () => { loadApp(app.id); modal.style.display = 'none'; };
+            let hiddenBadge = app.is_hidden ? ' 🔒 HIDDEN' : ' 🔓 PUBLIC';
+            let previewNote = app.is_hidden ? ' (запуск без кода)' : '';
+            div.innerHTML = `<strong>${escapeHtml(app.title)}${hiddenBadge}</strong><br><small>Автор ID: ${app.author_id} | ${new Date(app.created_at).toLocaleString()}${previewNote}</small>`;
+            div.onclick = () => { loadApp(app); modal.style.display = 'none'; };
             list.appendChild(div);
         }
         modal.style.display = 'flex';
@@ -340,19 +358,32 @@
         }, 10);
     }
     
-    // Event Listeners
     document.getElementById('runBtn').onclick = () => executeCRS(editor.value);
     document.getElementById('saveAppBtn').onclick = saveApp;
     document.getElementById('myAppsBtn').onclick = showMyApps;
     document.getElementById('allAppsBtn').onclick = showAllApps;
     document.getElementById('resetExample').onclick = () => {
-        editor.value = `<CURSED-CODING><c.title>Привет</c.title><c.text>Введи имя:</c.text><c.input></c.input><c.button>Сказать</c.button><c.script>let btn=document.querySelector('.crs-btn');let inp=document.querySelector('.crs-input');btn.onclick=()=>alert('Привет, '+inp.value);</c.script></CURSED-CODING>`;
+        editor.value = `<CURSED-CODING>
+<c.title> Приветственная программа </c.title>
+<c.text> Введите ваше имя: </c.text>
+<c.input> </c.input>
+<c.button> Поздороваться </c.button>
+
+<c.script>
+  let btn = document.querySelector('.crs-btn');
+  let inp = document.querySelector('.crs-input');
+  btn.onclick = function() {
+    let name = inp.value;
+    if (name && name.trim()) alert('Привет, ' + name.trim() + '!');
+    else alert('Введите имя!');
+  };
+</c.script>
+</CURSED-CODING>`;
         updateLineNumbers();
         executeCRS(editor.value);
     };
     document.getElementById('clearOutput').onclick = () => { renderDiv.innerHTML = '<div style="color:#aaa;">Очищено</div>'; errorPanel.style.display = 'none'; };
     
-    // Модальные окна
     document.getElementById('showLoginBtn').onclick = () => document.getElementById('loginModal').style.display = 'flex';
     document.getElementById('showRegisterBtn').onclick = () => document.getElementById('registerModal').style.display = 'flex';
     document.getElementById('logoutBtn').onclick = logout;
