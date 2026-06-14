@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>КРС Language Explorer</title>
+    <title>CRS Language Explorer</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { background: #e8ecf2; font-family: 'Courier New', monospace; padding: 20px; }
@@ -34,6 +34,8 @@
         .crs-card { border: 1px solid #ddd; border-radius: 12px; padding: 16px; margin: 10px 0; background: #fafcff; }
         .crs-btn { background: #4CAF50; color: white; border: none; padding: 8px 16px; margin: 5px; border-radius: 4px; cursor: pointer; }
         .crs-input { padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin: 5px 0; width: 100%; }
+        .crs-text { margin: 5px 0; }
+        .crs-title { margin: 10px 0; }
     </style>
 </head>
 <body>
@@ -188,7 +190,7 @@
         const closeIdx = code.indexOf(closeTag);
         
         if (openIdx === -1 || closeIdx === -1) {
-            document.getElementById('renderContainer').innerHTML = '<div style="color:#b00;">Ошибка: нет тегов</div>';
+            document.getElementById('renderContainer').innerHTML = '<div style="color:#b00;">Ошибка: нет тегов &lt;CURSED-CODING&gt; и &lt;CCURSED-CODING&gt;</div>';
             return;
         }
         
@@ -300,12 +302,48 @@
                     .replace(/высота/g, 'height')
                     .replace(/рамка/g, 'border')
                     .replace(/тень/g, 'box-shadow')
-                    .replace(/шрифт/g, 'font-size');
+                    .replace(/шрифт/g, 'font-size')
+                    .replace(/курсор/g, 'cursor');
+                
+                // Преобразуем русские названия цветов в HEX
+                val = convertColorName(val);
+                
                 css += `${prop}: ${val}; `;
             }
         }
         if (inRule) css += '}';
         return css;
+    }
+    
+    function convertColorName(val) {
+        const colors = {
+            'синий': '#2196F3',
+            'тёмно-синий': '#1565C0',
+            'темно-синий': '#1565C0',
+            'светло-синий': '#64B5F6',
+            'красный': '#f44336',
+            'зелёный': '#4CAF50',
+            'зеленый': '#4CAF50',
+            'тёмно-зелёный': '#388E3C',
+            'темно-зеленый': '#388E3C',
+            'жёлтый': '#FFC107',
+            'желтый': '#FFC107',
+            'фиолетовый': '#9C27B0',
+            'оранжевый': '#FF9800',
+            'розовый': '#E91E63',
+            'серый': '#9E9E9E',
+            'тёмно-серый': '#757575',
+            'темно-серый': '#757575',
+            'чёрный': '#000000',
+            'черный': '#000000',
+            'белый': '#ffffff'
+        };
+        
+        let lowerVal = val.toLowerCase();
+        if (colors[lowerVal]) {
+            return colors[lowerVal];
+        }
+        return val;
     }
     
     function convertKRSJS(krsjs) {
@@ -462,40 +500,35 @@
     document.getElementById('resetExample').onclick = () => {
         editor.value = `<CURSED-CODING>
 
-<c.title> 🐄 КРС — пример <cc.title>
+<c.title> 💙 Синяя кнопка — пример <cc.title>
 
-<c.text> 🌾 Привет! Вот кнопка и поле ввода <cc.text>
+<c.text> Нажми на кнопку: <cc.text>
 
-<c.text> Введи своё имя: <cc.text>
-<c.input> Введите имя <cc.input>
-
-<c.button> Поздороваться <cc.button>
+<c.button> Нажми меня <cc.button>
 
 <c.style>
 кнопка {
-  фон = зелёный
+  фон = синий
   цвет = белый
-  отступ = 8px 16px
-  углы = 8px
+  отступ = 12px 28px
+  углы = 30px
+  рамка = нет
+  шрифт = 16px
+  курсор = указатель
+  тень = 0 4px 12px серый
 }
 
-поле {
-  отступ = 8px
-  ширина = 200px
-  углы = 6px
-  рамка = 1px сплошной серый
+кнопка при наведении {
+  фон = тёмно-синий
+  тень = 0 6px 16px серый
 }
-<cc.style>
+</c.style>
 
 <c.script>
 кнопка {
-  при нажатии показать('Привет, мир!')
+  при нажатии показать('💙 Ты нажал на синюю кнопку!')
 }
-
-поле {
-  при вводе показать('Ввели: ' + значение)
-}
-<cc.script>
+</c.script>
 
 <CCURSED-CODING>`;
         updateLineNumbers();
