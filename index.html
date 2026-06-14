@@ -38,7 +38,7 @@
 </head>
 <body>
 <div class="container">
-    <div class="header"><div>КРС LANGUAGE EXPLORER</div><span>&lt;c.тег&gt; ... &lt;cc.тег&gt; (закрытие ТОЛЬКО через cc)</span></div>
+    <div class="header"><div>КРС LANGUAGE EXPLORER</div><span>&lt;c.тег&gt; ... &lt;cc.тег&gt;</span></div>
     <div class="user-panel">
         <span>👤 <span id="currentUser">Гость</span></span>
         <div>
@@ -183,12 +183,12 @@
     
     function executeCRS(code) {
         const openTag = "<CURSED-CODING>";
-        const closeTag = "</CCURSED-CODING>";
+        const closeTag = "<CCURSED-CODING>";
         const openIdx = code.indexOf(openTag);
         const closeIdx = code.indexOf(closeTag);
         
         if (openIdx === -1 || closeIdx === -1) {
-            document.getElementById('renderContainer').innerHTML = '<div style="color:#b00;">Ошибка: нет тегов &lt;CURSED-CODING&gt;</div>';
+            document.getElementById('renderContainer').innerHTML = '<div style="color:#b00;">Ошибка: нет тегов</div>';
             return;
         }
         
@@ -204,7 +204,6 @@
             
             const tag = openMatch[1].toLowerCase();
             const contentStart = i + openMatch.index + openMatch[0].length;
-            // ВНИМАНИЕ: закрытие ТОЛЬКО через <cc.тег> !!!
             const closeTagPattern = `<cc.${tag}>`;
             const closePos = content.indexOf(closeTagPattern, contentStart);
             
@@ -238,8 +237,7 @@
         
         let styleText = '';
         for (let st of styles) {
-            let converted = convertKRSCSS(st);
-            if (converted) styleText += converted;
+            styleText += convertKRSCSS(st);
         }
         if (styleText) {
             html = `<style>${styleText}</style>` + html;
@@ -464,16 +462,14 @@
     document.getElementById('resetExample').onclick = () => {
         editor.value = `<CURSED-CODING>
 
-<c.title> 🐄 КРС — пример с крс-жс <cc.title>
+<c.title> 🐄 КРС — пример <cc.title>
 
-<c.text> 🌾 Привет! Ниже кнопка и поле ввода <cc.text>
+<c.text> 🌾 Привет! Вот кнопка и поле ввода <cc.text>
 
 <c.text> Введи своё имя: <cc.text>
 <c.input> Введите имя <cc.input>
 
 <c.button> Поздороваться <cc.button>
-
-<c.button> Сделать фон зелёным <cc.button>
 
 <c.style>
 кнопка {
@@ -483,17 +479,13 @@
   углы = 8px
 }
 
-кнопка при наведении {
-  фон = тёмно-зелёный
-}
-
 поле {
   отступ = 8px
   ширина = 200px
   углы = 6px
   рамка = 1px сплошной серый
 }
-</c.style>
+<cc.style>
 
 <c.script>
 кнопка {
@@ -503,9 +495,9 @@
 поле {
   при вводе показать('Ввели: ' + значение)
 }
-</c.script>
+<cc.script>
 
-</CCURSED-CODING>`;
+<CCURSED-CODING>`;
         updateLineNumbers();
         executeCRS(editor.value);
     };
