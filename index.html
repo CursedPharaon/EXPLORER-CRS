@@ -288,7 +288,7 @@
         const closeIdx = code.indexOf(closeTag);
         
         if (openIdx === -1 || closeIdx === -1) {
-            document.getElementById('renderContainer').innerHTML = '<div style="color:#b00;">Ошибка: нет тегов &lt;CURSED-CODING&gt;</div>';
+            document.getElementById('renderContainer').innerHTML = '<div style="color:#b00;">Ошибка: нет тегов &lt;CURSED-CODING&gt; или &lt;/CCURSED-CODING&gt;</div>';
             return;
         }
         
@@ -383,10 +383,10 @@
     document.getElementById('allAppsBtn').onclick = showAllApps;
     document.getElementById('resetExample').onclick = () => {
         editor.value = `<CURSED-CODING>
-<c.title> Приветственная программа </c.title>
-<c.text> Введите ваше имя: </c.text>
-<c.input> </c.input>
-<c.button> Поздороваться </c.button>
+<c.title> Приветственная программа <cc.title>
+<c.text> Введите ваше имя: <cc.text>
+<c.input> <cc.input>
+<c.button> Поздороваться <cc.button>
 <c.script>
   let btn = document.querySelector('.crs-btn');
   let inp = document.querySelector('.crs-input');
@@ -395,8 +395,8 @@
     if (name && name.trim()) alert('Привет, ' + name.trim() + '!');
     else alert('Введите имя!');
   };
-</c.script>
-</CURSED-CODING>`;
+<cc.script>
+</CCURSED-CODING>`;
         updateLineNumbers();
         executeCRS(editor.value);
     };
