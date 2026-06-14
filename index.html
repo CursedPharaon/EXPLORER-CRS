@@ -26,13 +26,21 @@
         .user-panel { background: #eef2f7; padding: 5px 12px; border-bottom: 1px solid #ccc; display: flex; justify-content: space-between; align-items: center; }
         .crs-btn { background: #4CAF50; color: white; border: none; padding: 8px 16px; margin: 5px; border-radius: 4px; cursor: pointer; }
         .crs-input { padding: 8px; border: 1px solid #ccc; border-radius: 4px; width: 100%; margin: 5px 0; box-sizing: border-box; }
+        
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; justify-content: center; align-items: center; }
-        .modal-content { background: white; padding: 20px; border-radius: 8px; max-width: 600px; width: 90%; max-height: 80%; overflow: auto; }
+        .modal-content { background: white; padding: 20px; border-radius: 8px; max-width: 400px; width: 90%; }
+        .modal-content h3 { margin-bottom: 15px; }
+        .modal-content input { width: 100%; padding: 8px; margin: 8px 0; border: 1px solid #ccc; border-radius: 4px; }
+        .modal-content button { margin: 5px; }
+        
+        .toast { position: fixed; bottom: 20px; right: 20px; background: #333; color: white; padding: 12px 20px; border-radius: 8px; z-index: 1100; animation: fadeOut 3s forwards; }
+        .toast.error { background: #c00; }
+        .toast.success { background: #0a0; }
+        @keyframes fadeOut { 0% { opacity: 1; } 70% { opacity: 1; } 100% { opacity: 0; visibility: hidden; } }
+        
         .app-item { background: #f0f2f5; padding: 10px; margin: 10px 0; border-radius: 4px; cursor: pointer; }
         .app-item:hover { background: #e0e5ec; }
-        .login-form { background: #eef2f7; padding: 15px; border-radius: 8px; margin-bottom: 15px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
-        .login-form input { padding: 6px 10px; border: 1px solid #aaa; border-radius: 4px; font-family: monospace; }
-        .login-form button { margin: 0; }
+        .apps-modal { max-width: 600px; max-height: 80%; overflow: auto; }
     </style>
 </head>
 <body>
@@ -40,7 +48,11 @@
     <div class="header"><div>CRS LANGUAGE EXPLORER</div><span>&lt;CURSED-CODING&gt;...&lt;/CCURSED-CODING&gt;</span></div>
     <div class="user-panel" id="userPanel">
         <span>👤 <span id="currentUser">Гость</span></span>
-        <button id="showLoginBtn">Войти / Регистрация</button>
+        <div>
+            <button id="showLoginBtn">Войти</button>
+            <button id="showRegisterBtn">Регистрация</button>
+            <button id="logoutBtn" style="display:none;">Выйти</button>
+        </div>
     </div>
     <div class="workspace">
         <div class="editor-panel">
@@ -66,26 +78,38 @@
     </div>
 </div>
 
+<!-- Модальное окно входа -->
 <div id="loginModal" class="modal">
     <div class="modal-content">
-        <h3>Вход / Регистрация</h3>
-        <div class="login-form" style="display: flex; flex-direction: column; gap: 10px;">
-            <input type="text" id="loginUsername" placeholder="Имя пользователя">
-            <input type="password" id="loginPassword" placeholder="Пароль">
-            <div style="display: flex; gap: 10px;">
-                <button id="loginSubmitBtn">Войти</button>
-                <button id="registerSubmitBtn">Регистрация</button>
-                <button id="cancelLoginBtn">Отмена</button>
-            </div>
+        <h3>Вход</h3>
+        <input type="text" id="loginUsername" placeholder="Имя пользователя">
+        <input type="password" id="loginPassword" placeholder="Пароль">
+        <div style="display: flex; gap: 10px; justify-content: flex-end;">
+            <button id="loginSubmitBtn">Войти</button>
+            <button id="closeLoginBtn">Отмена</button>
         </div>
     </div>
 </div>
 
-<div id="appsModal" class="modal">
+<!-- Модальное окно регистрации -->
+<div id="registerModal" class="modal">
     <div class="modal-content">
+        <h3>Регистрация</h3>
+        <input type="text" id="regUsername" placeholder="Имя пользователя">
+        <input type="password" id="regPassword" placeholder="Пароль">
+        <div style="display: flex; gap: 10px; justify-content: flex-end;">
+            <button id="registerSubmitBtn">Зарегистрироваться</button>
+            <button id="closeRegisterBtn">Отмена</button>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно приложений -->
+<div id="appsModal" class="modal">
+    <div class="modal-content apps-modal">
         <h3 id="modalTitle">Приложения</h3>
         <div id="modalList"></div>
-        <button id="closeModal">Закрыть</button>
+        <button id="closeAppsBtn">Закрыть</button>
     </div>
 </div>
 
@@ -95,72 +119,100 @@
     
     let currentUser = null;
     
-    async function callFunction(funcName, params) {
-        const response = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${funcName}`, {
-            method: 'POST',
-            headers: {
-                'apikey': SUPABASE_ANON_KEY,
-                'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(params)
-        });
-        return await response.json();
+    function showToast(msg, type = 'info') {
+        const toast = document.createElement('div');
+        toast.className = `toast ${type}`;
+        toast.textContent = msg;
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 3000);
     }
     
-    async function registerAndLogin() {
-        const username = document.getElementById('loginUsername').value.trim();
-        const password = document.getElementById('loginPassword').value;
-        if (!username || !password) { alert("Заполните поля"); return; }
+    async function callFunction(funcName, params) {
+        try {
+            const response = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${funcName}`, {
+                method: 'POST',
+                headers: {
+                    'apikey': SUPABASE_ANON_KEY,
+                    'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(params)
+            });
+            return await response.json();
+        } catch(e) {
+            showToast("Ошибка соединения", "error");
+            return null;
+        }
+    }
+    
+    async function register() {
+        const username = document.getElementById('regUsername').value.trim();
+        const password = document.getElementById('regPassword').value;
+        if (!username || !password) { showToast("Заполните все поля", "error"); return; }
         
         const result = await callFunction('register_user', { username, user_password: password });
         if (result && result.success) {
             currentUser = { id: result.user_id, username: result.username };
             localStorage.setItem('crs_user', JSON.stringify(currentUser));
-            document.getElementById('currentUser').innerText = currentUser.username;
-            document.getElementById('loginModal').style.display = 'none';
-            alert("Добро пожаловать, " + currentUser.username + "!");
-            document.getElementById('loginUsername').value = '';
-            document.getElementById('loginPassword').value = '';
+            updateUI();
+            document.getElementById('registerModal').style.display = 'none';
+            document.getElementById('regUsername').value = '';
+            document.getElementById('regPassword').value = '';
+            showToast("Добро пожаловать, " + currentUser.username + "!", "success");
         } else {
-            alert("Ошибка регистрации: " + (result?.error || "пользователь уже существует?"));
+            showToast("Ошибка: " + (result?.error || "пользователь уже существует"), "error");
         }
     }
     
     async function login() {
         const username = document.getElementById('loginUsername').value.trim();
         const password = document.getElementById('loginPassword').value;
-        if (!username || !password) { alert("Заполните поля"); return; }
+        if (!username || !password) { showToast("Заполните все поля", "error"); return; }
         
         const result = await callFunction('get_user', { username, user_password: password });
         if (result && result.success) {
             currentUser = { id: result.user_id, username: result.username };
             localStorage.setItem('crs_user', JSON.stringify(currentUser));
-            document.getElementById('currentUser').innerText = currentUser.username;
+            updateUI();
             document.getElementById('loginModal').style.display = 'none';
-            alert("Добро пожаловать, " + currentUser.username + "!");
             document.getElementById('loginUsername').value = '';
             document.getElementById('loginPassword').value = '';
+            showToast("Добро пожаловать, " + currentUser.username + "!", "success");
         } else {
-            alert("Неверные имя или пароль");
+            showToast("Неверные имя или пароль", "error");
         }
     }
     
     function logout() {
         currentUser = null;
         localStorage.removeItem('crs_user');
-        document.getElementById('currentUser').innerText = "Гость";
+        updateUI();
+        showToast("Вы вышли из аккаунта", "info");
+    }
+    
+    function updateUI() {
+        if (currentUser) {
+            document.getElementById('currentUser').innerText = currentUser.username;
+            document.getElementById('showLoginBtn').style.display = 'none';
+            document.getElementById('showRegisterBtn').style.display = 'none';
+            document.getElementById('logoutBtn').style.display = 'inline-block';
+        } else {
+            document.getElementById('currentUser').innerText = "Гость";
+            document.getElementById('showLoginBtn').style.display = 'inline-block';
+            document.getElementById('showRegisterBtn').style.display = 'inline-block';
+            document.getElementById('logoutBtn').style.display = 'none';
+        }
     }
     
     async function saveApp() {
-        if (!currentUser) { alert("Сначала войдите"); return; }
+        if (!currentUser) { showToast("Сначала войдите", "error"); return; }
         const title = prompt("Название приложения:");
         if (!title) return;
         const code = document.getElementById('crsCode').value;
-        if (!code) { alert("Код пуст"); return; }
+        if (!code) { showToast("Код пуст", "error"); return; }
         const result = await callFunction('create_app', { app_title: title, app_code: code, author_id: currentUser.id });
-        if (result && result.success) alert("Сохранено!");
-        else alert("Ошибка сохранения");
+        if (result && result.success) showToast("Сохранено!", "success");
+        else showToast("Ошибка сохранения", "error");
     }
     
     async function getMyApps() {
@@ -187,6 +239,7 @@
             document.getElementById('crsCode').value = apps[0].code;
             updateLineNumbers();
             executeCRS(apps[0].code);
+            showToast("Загружено: " + apps[0].title, "success");
         }
     }
     
@@ -196,6 +249,9 @@
         const list = document.getElementById('modalList');
         document.getElementById('modalTitle').innerText = "Мои приложения";
         list.innerHTML = '';
+        if (apps.length === 0) {
+            list.innerHTML = '<div style="padding:20px; text-align:center;">Нет приложений</div>';
+        }
         for (let app of apps) {
             let div = document.createElement('div');
             div.className = 'app-item';
@@ -212,10 +268,13 @@
         const list = document.getElementById('modalList');
         document.getElementById('modalTitle').innerText = "Все приложения";
         list.innerHTML = '';
+        if (apps.length === 0) {
+            list.innerHTML = '<div style="padding:20px; text-align:center;">Нет приложений</div>';
+        }
         for (let app of apps) {
             let div = document.createElement('div');
             div.className = 'app-item';
-            div.innerHTML = `<strong>${escapeHtml(app.title)}</strong><br><small>Автор ID: ${app.author_id} | ${new Date(app.created_at).toLocaleString()}</small>`;
+            div.innerHTML = `<strong>${escapeHtml(app.title)}</strong><br><small>Автор: ${app.author_id} | ${new Date(app.created_at).toLocaleString()}</small>`;
             div.onclick = () => { loadApp(app.id); modal.style.display = 'none'; };
             list.appendChild(div);
         }
@@ -281,6 +340,7 @@
         }, 10);
     }
     
+    // Event Listeners
     document.getElementById('runBtn').onclick = () => executeCRS(editor.value);
     document.getElementById('saveAppBtn').onclick = saveApp;
     document.getElementById('myAppsBtn').onclick = showMyApps;
@@ -291,23 +351,26 @@
         executeCRS(editor.value);
     };
     document.getElementById('clearOutput').onclick = () => { renderDiv.innerHTML = '<div style="color:#aaa;">Очищено</div>'; errorPanel.style.display = 'none'; };
-    document.getElementById('showLoginBtn').onclick = () => { document.getElementById('loginModal').style.display = 'flex'; };
-    document.getElementById('loginSubmitBtn').onclick = login;
-    document.getElementById('registerSubmitBtn').onclick = registerAndLogin;
-    document.getElementById('cancelLoginBtn').onclick = () => { document.getElementById('loginModal').style.display = 'none'; };
-    document.getElementById('closeModal').onclick = () => document.getElementById('appsModal').style.display = 'none';
     
-    // Кнопка выхода (можно добавить)
-    const logoutBtn = document.createElement('button');
-    logoutBtn.textContent = 'Выйти';
-    logoutBtn.style.padding = '2px 8px';
-    logoutBtn.onclick = logout;
-    document.getElementById('userPanel').appendChild(logoutBtn);
+    // Модальные окна
+    document.getElementById('showLoginBtn').onclick = () => document.getElementById('loginModal').style.display = 'flex';
+    document.getElementById('showRegisterBtn').onclick = () => document.getElementById('registerModal').style.display = 'flex';
+    document.getElementById('logoutBtn').onclick = logout;
+    document.getElementById('loginSubmitBtn').onclick = login;
+    document.getElementById('closeLoginBtn').onclick = () => document.getElementById('loginModal').style.display = 'none';
+    document.getElementById('registerSubmitBtn').onclick = register;
+    document.getElementById('closeRegisterBtn').onclick = () => document.getElementById('registerModal').style.display = 'none';
+    document.getElementById('closeAppsBtn').onclick = () => document.getElementById('appsModal').style.display = 'none';
+    
+    window.onclick = (e) => {
+        if (e.target.classList.contains('modal')) e.target.style.display = 'none';
+    };
     
     const saved = localStorage.getItem('crs_user');
     if (saved) {
-        try { currentUser = JSON.parse(saved); document.getElementById('currentUser').innerText = currentUser.username; } catch(e) {}
+        try { currentUser = JSON.parse(saved); updateUI(); } catch(e) {}
     }
+    updateUI();
     updateLineNumbers();
     executeCRS(editor.value);
 </script>
