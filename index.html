@@ -207,13 +207,16 @@
                 const lines = innerRaw.split('\n');
                 for (let line of lines) {
                     line = line.trim();
-                    if (line.startsWith('кнопка')) styleHtml += `.crs-btn { `;
-                    else if (line.startsWith('поле')) styleHtml += `.crs-input { `;
-                    else if (line.startsWith('карточка')) styleHtml += `.card { `;
+                    if (line === 'кнопка') styleHtml += `.crs-btn { `;
+                    else if (line === 'кнопка при наведении') styleHtml += `.crs-btn:hover { `;
+                    else if (line === 'поле') styleHtml += `.crs-input { `;
+                    else if (line === 'карточка') styleHtml += `.card { `;
                     else if (line.startsWith('фон')) styleHtml += `background-color: ${line.split('=')[1].trim()}; `;
                     else if (line.startsWith('цвет')) styleHtml += `color: ${line.split('=')[1].trim()}; `;
                     else if (line.startsWith('отступ')) styleHtml += `padding: ${line.split('=')[1].trim()}; `;
                     else if (line.startsWith('углы')) styleHtml += `border-radius: ${line.split('=')[1].trim()}; `;
+                    else if (line.startsWith('ширина')) styleHtml += `width: ${line.split('=')[1].trim()}; `;
+                    else if (line.startsWith('тень')) styleHtml += `box-shadow: ${line.split('=')[1].trim()}; `;
                     else if (line === '}') styleHtml += `} `;
                 }
                 if (styleHtml) html = `<style>${styleHtml}</style>` + html;
@@ -229,7 +232,7 @@
         const openIdx = code.indexOf(openTag);
         const closeIdx = code.indexOf(closeTag);
         if (openIdx === -1 || closeIdx === -1) {
-            document.getElementById('renderContainer').innerHTML = '<div style="color:#b00;">Ошибка: нет тегов &lt;CURSED-CODING&gt;</div>';
+            document.getElementById('renderContainer').innerHTML = '<div style="color:#b00;">Ошибка: нет тегов</div>';
             return;
         }
         const inner = code.substring(openIdx + openTag.length, closeIdx);
@@ -237,11 +240,11 @@
         const renderDiv = document.getElementById('renderContainer');
         renderDiv.innerHTML = html;
         setTimeout(() => {
-            scripts.forEach(scriptContent => {
+            for (let scriptContent of scripts) {
                 const script = document.createElement('script');
                 script.textContent = scriptContent;
                 renderDiv.appendChild(script);
-            });
+            }
         }, 10);
     }
     
@@ -287,7 +290,6 @@
     function escapeHtml(str) { return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m])); }
     
     const editor = document.getElementById('crsCode');
-    const renderDiv = document.getElementById('renderContainer');
     const lineNumbersDiv = document.getElementById('lineNumbers');
     const lineCountInfo = document.getElementById('lineCountInfo');
     
@@ -307,25 +309,26 @@
     document.getElementById('allAppsBtn').onclick = showAllApps;
     document.getElementById('resetExample').onclick = () => {
         editor.value = `<CURSED-CODING>
-<c.title> CRS Пример с карточками и стилями </c.title>
 
-<c.text> Вот пример карточки с кнопкой: </c.text>
+<c.title> CRS Пример с карточками и стилями <cc.title>
+
+<c.text> Вот пример карточки с кнопкой: <cc.text>
 
 <c.card>
-  <c.text> 🎉 Карточка товара </c.text>
-  <c.text> Цена: 1000 рублей </c.text>
-  <c.button> Купить </c.button>
+  <c.text> 🎉 Карточка товара <cc.text>
+  <c.text> Цена: 1000 рублей <cc.text>
+  <c.button> Купить <cc.button>
 </c.card>
 
 <c.card>
-  <c.text> 🔥 Супер предложение </c.text>
-  <c.text> Скидка 50% только сегодня! </c.text>
-  <c.button> Заказать </c.button>
+  <c.text> 🔥 Супер предложение <cc.text>
+  <c.text> Скидка 50% только сегодня! <cc.text>
+  <c.button> Заказать <cc.button>
 </c.card>
 
-<c.text> Введите ваше имя: </c.text>
-<c.input> </c.input>
-<c.button> Поздороваться </c.button>
+<c.text> Введите ваше имя: <cc.text>
+<c.input> <cc.input>
+<c.button> Поздороваться <cc.button>
 
 <c.style>
 кнопка
@@ -351,24 +354,18 @@
 </c.style>
 
 <c.script>
-  let btn = document.querySelector('.crs-btn');
-  let inp = document.querySelector('.crs-input');
-  
-  btn.onclick = function() {
-    let name = inp.value;
-    if (name && name.trim()) {
-      alert('Привет, ' + name.trim() + '!');
-    } else {
-      alert('Введите имя!');
-    }
-  };
-  
-  let buyBtns = document.querySelectorAll('.card .crs-btn');
-  for (let i = 0; i < buyBtns.length; i++) {
-    buyBtns[i].onclick = function() {
-      alert('Товар добавлен в корзину!');
-    };
-  }
+когда нажата кнопка
+  имя = значение инпута
+  если имя равно 
+    показать "Введи имя!"
+  иначе
+    показать "Привет, " + имя
+
+когда нажата кнопка купить
+  показать "Товар добавлен в корзину!"
+
+когда нажата кнопка заказать
+  показать "Заказ оформлен!"
 </c.script>
 
 </CCURSED-CODING>`;
