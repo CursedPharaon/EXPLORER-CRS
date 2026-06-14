@@ -288,12 +288,13 @@
         const closeIdx = code.indexOf(closeTag);
         
         if (openIdx === -1 || closeIdx === -1) {
-            renderDiv.innerHTML = '<div style="color:#b00;">Ошибка: нет тегов &lt;CURSED-CODING&gt;</div>';
+            document.getElementById('renderContainer').innerHTML = '<div style="color:#b00;">Ошибка: нет тегов &lt;CURSED-CODING&gt;</div>';
             return;
         }
         
         const inner = code.substring(openIdx + openTag.length, closeIdx);
         const { html, scripts } = parseCRS(inner);
+        const renderDiv = document.getElementById('renderContainer');
         renderDiv.innerHTML = html;
         
         setTimeout(() => {
