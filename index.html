@@ -24,16 +24,13 @@
         .render-area { padding: 16px; background: white; min-height: 500px; overflow-y: auto; }
         .error-box { background: #fff0ee; border-left: 5px solid #c00; padding: 10px; color: #a00; display: none; margin: 10px; }
         .user-panel { background: #eef2f7; padding: 5px 12px; border-bottom: 1px solid #ccc; display: flex; justify-content: space-between; align-items: center; }
-        
         .crs-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 10000; display: flex; justify-content: center; align-items: center; }
         .crs-modal-content { background: white; border-radius: 12px; padding: 24px; min-width: 300px; text-align: center; }
         .crs-modal-content button { background: #4CAF50; color: white; border: none; padding: 8px 24px; border-radius: 6px; cursor: pointer; }
-        
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; justify-content: center; align-items: center; }
         .modal-content { background: white; padding: 20px; border-radius: 8px; max-width: 400px; width: 90%; }
         .app-item { background: #f0f2f5; padding: 10px; margin: 10px 0; border-radius: 4px; cursor: pointer; }
         .app-item:hover { background: #e0e5ec; }
-        
         .crs-card { border: 1px solid #ddd; border-radius: 12px; padding: 16px; margin: 10px 0; background: #fafcff; }
         .crs-btn { background: #4CAF50; color: white; border: none; padding: 8px 16px; margin: 5px; border-radius: 4px; cursor: pointer; }
         .crs-input { padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin: 5px 0; width: 100%; }
@@ -41,7 +38,7 @@
 </head>
 <body>
 <div class="container">
-    <div class="header"><div>КРС LANGUAGE EXPLORER</div><span>&lt;c.тег&gt; ... &lt;cc.тег&gt;</span></div>
+    <div class="header"><div>КРС LANGUAGE EXPLORER</div><span>&lt;c.тег&gt; ... &lt;cc.тег&gt; (закрытие ТОЛЬКО через cc)</span></div>
     <div class="user-panel">
         <span>👤 <span id="currentUser">Гость</span></span>
         <div>
@@ -207,6 +204,7 @@
             
             const tag = openMatch[1].toLowerCase();
             const contentStart = i + openMatch.index + openMatch[0].length;
+            // ВНИМАНИЕ: закрытие ТОЛЬКО через <cc.тег> !!!
             const closeTagPattern = `<cc.${tag}>`;
             const closePos = content.indexOf(closeTagPattern, contentStart);
             
@@ -238,7 +236,6 @@
             }
         }
         
-        // Обработка КРС-КСС стилей
         let styleText = '';
         for (let st of styles) {
             let converted = convertKRSCSS(st);
@@ -314,14 +311,6 @@
     }
     
     function convertKRSJS(krsjs) {
-        // КРС-ЖС синтаксис:
-        // кнопка {
-        //   при нажатии показать('Привет, ' + имя)
-        // }
-        // поле {
-        //   при вводе показать('Ввели: ' + значение)
-        // }
-        
         let js = '';
         let lines = krsjs.split('\n');
         let inBlock = false;
@@ -513,10 +502,6 @@
 
 поле {
   при вводе показать('Ввели: ' + значение)
-}
-
-кнопка {
-  при нажатии показать('Текст на кнопке: ' + текст)
 }
 </c.script>
 
