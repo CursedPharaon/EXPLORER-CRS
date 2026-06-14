@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CRS Language Explorer</title>
+    <title>КРС Language Explorer</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { background: #e8ecf2; font-family: 'Courier New', monospace; padding: 20px; }
-        .container { max-width: 1400px; margin: 0 auto; background: white; border: 1px solid #aaa; }
+        .container { max-width: 1400px; margin: 0 auto; background: white; border: 1px solid #aaa; border-radius: 8px; overflow: hidden; }
         .header { background: #d9dfe8; padding: 10px 16px; border-bottom: 1px solid #999; font-weight: bold; font-size: 1.3rem; display: flex; justify-content: space-between; }
         .workspace { display: flex; flex-wrap: wrap; }
         .editor-panel { flex: 1.2; min-width: 450px; border-right: 1px solid #ccc; }
@@ -34,14 +34,14 @@
         .app-item { background: #f0f2f5; padding: 10px; margin: 10px 0; border-radius: 4px; cursor: pointer; }
         .app-item:hover { background: #e0e5ec; }
         
+        .crs-card { border: 1px solid #ddd; border-radius: 12px; padding: 16px; margin: 10px 0; background: #fafcff; }
         .crs-btn { background: #4CAF50; color: white; border: none; padding: 8px 16px; margin: 5px; border-radius: 4px; cursor: pointer; }
-        .crs-input { padding: 8px; border: 1px solid #ccc; border-radius: 4px; width: 100%; margin: 5px 0; box-sizing: border-box; }
-        .card { border: 1px solid #ddd; border-radius: 12px; padding: 16px; margin: 10px 0; background: #fafcff; }
+        .crs-input { padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin: 5px 0; width: 100%; }
     </style>
 </head>
 <body>
 <div class="container">
-    <div class="header"><div>CRS LANGUAGE EXPLORER</div><span>&lt;c.tag&gt; ... &lt;cc.tag&gt;</span></div>
+    <div class="header"><div>КРС LANGUAGE EXPLORER</div><span>&lt;c.тег&gt; ... &lt;cc.тег&gt;</span></div>
     <div class="user-panel">
         <span>👤 <span id="currentUser">Гость</span></span>
         <div>
@@ -52,7 +52,7 @@
     </div>
     <div class="workspace">
         <div class="editor-panel">
-            <div class="editor-header"><span>РЕДАКТОР CRS</span><span id="lineCountInfo">строк: 0</span></div>
+            <div class="editor-header"><span>РЕДАКТОР КРС</span><span id="lineCountInfo">строк: 0</span></div>
             <div class="editor-with-lines">
                 <div class="line-numbers" id="lineNumbers"></div>
                 <textarea id="crsCode" rows="18"></textarea>
@@ -184,18 +184,36 @@
         return await res.json();
     }
     
-    function parseCRS(code) {
-        let html = ''; let scripts = []; let i = 0;
-        while (i < code.length) {
-            const openMatch = code.substring(i).match(/<c\.([a-zA-Z]+)>/);
+    function executeCRS(code) {
+        const openTag = "<CURSED-CODING>";
+        const closeTag = "</CCURSED-CODING>";
+        const openIdx = code.indexOf(openTag);
+        const closeIdx = code.indexOf(closeTag);
+        
+        if (openIdx === -1 || closeIdx === -1) {
+            document.getElementById('renderContainer').innerHTML = '<div style="color:#b00;">Ошибка: нет тегов &lt;CURSED-CODING&gt;</div>';
+            return;
+        }
+        
+        let content = code.substring(openIdx + openTag.length, closeIdx);
+        let html = '';
+        let scripts = [];
+        let styles = [];
+        let i = 0;
+        
+        while (i < content.length) {
+            const openMatch = content.substring(i).match(/<c\.([a-zA-Zа-яА-Я]+)>/);
             if (!openMatch) break;
+            
             const tag = openMatch[1].toLowerCase();
             const contentStart = i + openMatch.index + openMatch[0].length;
-            const closeTag = `<cc.${tag}>`;
-            const closePos = code.indexOf(closeTag, contentStart);
+            const closeTagPattern = `<cc.${tag}>`;
+            const closePos = content.indexOf(closeTagPattern, contentStart);
+            
             if (closePos === -1) break;
-            const innerRaw = code.substring(contentStart, closePos);
-            i = closePos + closeTag.length;
+            
+            const innerRaw = content.substring(contentStart, closePos);
+            i = closePos + closeTagPattern.length;
             
             if (tag === 'button') {
                 html += `<button class="crs-btn">${escapeHtml(innerRaw.trim()) || 'Кнопка'}</button>`;
@@ -204,93 +222,195 @@
                 html += `<input type="text" class="crs-input" placeholder="${escapeHtml(innerRaw.trim())}">`;
             }
             else if (tag === 'text') {
-                html += `<div style="margin:5px 0;">${escapeHtml(innerRaw)}</div>`;
+                html += `<div class="crs-text">${escapeHtml(innerRaw)}</div>`;
             }
             else if (tag === 'title') {
-                html += `<h2 style="margin:10px 0;">${escapeHtml(innerRaw)}</h2>`;
+                html += `<h2 class="crs-title">${escapeHtml(innerRaw)}</h2>`;
             }
             else if (tag === 'card') {
-                html += `<div class="card">${escapeHtml(innerRaw)}</div>`;
+                html += `<div class="crs-card">${escapeHtml(innerRaw)}</div>`;
             }
             else if (tag === 'style') {
-                let styleHtml = '';
-                const lines = innerRaw.split('\n');
-                for (let line of lines) {
-                    line = line.trim();
-                    if (line === 'кнопка') styleHtml += `.crs-btn { `;
-                    else if (line === 'кнопка при наведении') styleHtml += `.crs-btn:hover { `;
-                    else if (line === 'поле') styleHtml += `.crs-input { `;
-                    else if (line === 'карточка') styleHtml += `.card { `;
-                    else if (line.startsWith('фон')) styleHtml += `background-color: ${line.split('=')[1].trim()}; `;
-                    else if (line.startsWith('цвет')) styleHtml += `color: ${line.split('=')[1].trim()}; `;
-                    else if (line.startsWith('отступ')) styleHtml += `padding: ${line.split('=')[1].trim()}; `;
-                    else if (line.startsWith('углы')) styleHtml += `border-radius: ${line.split('=')[1].trim()}; `;
-                    else if (line.startsWith('ширина')) styleHtml += `width: ${line.split('=')[1].trim()}; `;
-                    else if (line.startsWith('тень')) styleHtml += `box-shadow: ${line.split('=')[1].trim()}; `;
-                    else if (line === '}') styleHtml += `} `;
-                }
-                if (styleHtml) html = `<style>${styleHtml}</style>` + html;
+                styles.push(innerRaw);
             }
             else if (tag === 'script') {
-                let jsCode = '';
-                const lines = innerRaw.split('\n');
-                for (let line of lines) {
-                    line = line.trim();
-                    if (line.startsWith('когда нажата кнопка')) {
-                        jsCode += `document.querySelectorAll('.crs-btn').forEach(btn => { btn.onclick = function() { `;
-                    }
-                    else if (line.startsWith('когда нажата кнопка купить')) {
-                        jsCode += `document.querySelectorAll('.card .crs-btn').forEach(btn => { if(btn.innerText === 'Купить') btn.onclick = function() { `;
-                    }
-                    else if (line.startsWith('когда нажата кнопка заказать')) {
-                        jsCode += `document.querySelectorAll('.card .crs-btn').forEach(btn => { if(btn.innerText === 'Заказать') btn.onclick = function() { `;
-                    }
-                    else if (line.startsWith('имя = значение инпута')) {
-                        jsCode += `let name = document.querySelector('.crs-input').value; `;
-                    }
-                    else if (line.startsWith('показать')) {
-                        let msg = line.replace('показать', '').trim();
-                        jsCode += `alert(${JSON.stringify(msg)}); `;
-                    }
-                    else if (line.startsWith('если имя равно')) {
-                        jsCode += `if (name === "") { `;
-                    }
-                    else if (line === 'иначе') {
-                        jsCode += `} else { `;
-                    }
-                    else if (line === 'конец') {
-                        jsCode += `} }); `;
-                    }
-                }
-                if (jsCode) scripts.push(jsCode);
-            }
-            else {
-                html += `<div>${escapeHtml(innerRaw)}</div>`;
+                scripts.push(innerRaw);
             }
         }
-        return { html, scripts };
-    }
-    
-    function executeCRS(code) {
-        const openTag = "<CURSED-CODING>";
-        const closeTag = "</CCURSED-CODING>";
-        const openIdx = code.indexOf(openTag);
-        const closeIdx = code.indexOf(closeTag);
-        if (openIdx === -1 || closeIdx === -1) {
-            document.getElementById('renderContainer').innerHTML = '<div style="color:#b00;">Ошибка: нет тегов</div>';
-            return;
+        
+        // Обработка КРС-КСС стилей
+        let styleText = '';
+        for (let st of styles) {
+            let converted = convertKRSCSS(st);
+            if (converted) styleText += converted;
         }
-        const inner = code.substring(openIdx + openTag.length, closeIdx);
-        const { html, scripts } = parseCRS(inner);
+        if (styleText) {
+            html = `<style>${styleText}</style>` + html;
+        }
+        
         const renderDiv = document.getElementById('renderContainer');
         renderDiv.innerHTML = html;
+        
         setTimeout(() => {
             for (let scriptContent of scripts) {
-                const script = document.createElement('script');
-                script.textContent = scriptContent;
-                renderDiv.appendChild(script);
+                try {
+                    let convertedScript = convertKRSJS(scriptContent);
+                    const script = document.createElement('script');
+                    script.textContent = convertedScript;
+                    renderDiv.appendChild(script);
+                } catch(e) { console.log(e); }
             }
         }, 10);
+    }
+    
+    function convertKRSCSS(krscss) {
+        let css = '';
+        let lines = krscss.split('\n');
+        let inRule = false;
+        let currentSelector = '';
+        
+        for (let line of lines) {
+            line = line.trim();
+            if (line === '') continue;
+            
+            if (line.endsWith('{') && !line.includes('=')) {
+                if (inRule) css += '}';
+                currentSelector = line.substring(0, line.length - 1).trim();
+                currentSelector = currentSelector
+                    .replace(/кнопка/g, '.crs-btn')
+                    .replace(/поле/g, '.crs-input')
+                    .replace(/карточка/g, '.crs-card')
+                    .replace(/текст/g, '.crs-text')
+                    .replace(/заголовок/g, '.crs-title');
+                css += `${currentSelector} { `;
+                inRule = true;
+                continue;
+            }
+            
+            if (line === '}') {
+                if (inRule) css += '} ';
+                inRule = false;
+                currentSelector = '';
+                continue;
+            }
+            
+            if (line.includes('=') && inRule) {
+                let [prop, val] = line.split('=').map(s => s.trim());
+                prop = prop
+                    .replace(/фон/g, 'background-color')
+                    .replace(/цвет/g, 'color')
+                    .replace(/отступ/g, 'padding')
+                    .replace(/углы/g, 'border-radius')
+                    .replace(/ширина/g, 'width')
+                    .replace(/высота/g, 'height')
+                    .replace(/рамка/g, 'border')
+                    .replace(/тень/g, 'box-shadow')
+                    .replace(/шрифт/g, 'font-size');
+                css += `${prop}: ${val}; `;
+            }
+        }
+        if (inRule) css += '}';
+        return css;
+    }
+    
+    function convertKRSJS(krsjs) {
+        // КРС-ЖС синтаксис:
+        // кнопка {
+        //   при нажатии показать('Привет, ' + имя)
+        // }
+        // поле {
+        //   при вводе показать('Ввели: ' + значение)
+        // }
+        
+        let js = '';
+        let lines = krsjs.split('\n');
+        let inBlock = false;
+        let currentSelector = '';
+        let currentAction = '';
+        let actionContent = '';
+        
+        for (let line of lines) {
+            let trimmed = line.trim();
+            if (trimmed === '') continue;
+            
+            if (trimmed.endsWith('{') && !trimmed.includes('при')) {
+                if (inBlock) {
+                    js += generateJSCode(currentSelector, currentAction, actionContent);
+                }
+                currentSelector = trimmed.substring(0, trimmed.length - 1).trim();
+                inBlock = true;
+                currentAction = '';
+                actionContent = '';
+                continue;
+            }
+            
+            if (trimmed === '}') {
+                if (inBlock) {
+                    js += generateJSCode(currentSelector, currentAction, actionContent);
+                }
+                inBlock = false;
+                currentSelector = '';
+                currentAction = '';
+                actionContent = '';
+                continue;
+            }
+            
+            if (inBlock && trimmed.startsWith('при')) {
+                if (trimmed.startsWith('при нажатии')) {
+                    currentAction = 'click';
+                    actionContent = trimmed.replace('при нажатии', '').trim();
+                }
+                else if (trimmed.startsWith('при вводе')) {
+                    currentAction = 'input';
+                    actionContent = trimmed.replace('при вводе', '').trim();
+                }
+                else if (trimmed.startsWith('при наведении')) {
+                    currentAction = 'mouseenter';
+                    actionContent = trimmed.replace('при наведении', '').trim();
+                }
+            }
+        }
+        
+        if (inBlock) {
+            js += generateJSCode(currentSelector, currentAction, actionContent);
+        }
+        
+        return js;
+    }
+    
+    function generateJSCode(selector, action, actionCode) {
+        if (!selector || !action) return '';
+        
+        let cssSelector = '';
+        if (selector === 'кнопка') cssSelector = '.crs-btn';
+        else if (selector === 'поле') cssSelector = '.crs-input';
+        else if (selector === 'карточка') cssSelector = '.crs-card';
+        else if (selector === 'текст') cssSelector = '.crs-text';
+        else if (selector === 'заголовок') cssSelector = '.crs-title';
+        else cssSelector = selector;
+        
+        let eventName = '';
+        if (action === 'click') eventName = 'click';
+        else if (action === 'input') eventName = 'input';
+        else if (action === 'mouseenter') eventName = 'mouseenter';
+        else return '';
+        
+        let jsCode = actionCode;
+        jsCode = jsCode.replace(/показать\(/g, 'alert(');
+        jsCode = jsCode.replace(/значение/g, 'this.value');
+        jsCode = jsCode.replace(/имя/g, 'this.value');
+        jsCode = jsCode.replace(/текст/g, 'this.innerText');
+        
+        return `
+        (function() {
+            var elements = document.querySelectorAll('${cssSelector}');
+            for (var i = 0; i < elements.length; i++) {
+                elements[i].addEventListener('${eventName}', function(event) {
+                    ${jsCode}
+                });
+            }
+        })();
+        `;
     }
     
     async function loadApp(app) {
@@ -355,65 +475,49 @@
     document.getElementById('resetExample').onclick = () => {
         editor.value = `<CURSED-CODING>
 
-<c.title> CRS Пример с карточками и стилями <cc.title>
+<c.title> 🐄 КРС — пример с крс-жс <cc.title>
 
-<c.text> Вот пример карточки с кнопкой: <cc.text>
+<c.text> 🌾 Привет! Ниже кнопка и поле ввода <cc.text>
 
-<c.card>
-  <c.text> 🎉 Карточка товара <cc.text>
-  <c.text> Цена: 1000 рублей <cc.text>
-  <c.button> Купить <cc.button>
-</c.card>
+<c.text> Введи своё имя: <cc.text>
+<c.input> Введите имя <cc.input>
 
-<c.card>
-  <c.text> 🔥 Супер предложение <cc.text>
-  <c.text> Скидка 50% только сегодня! <cc.text>
-  <c.button> Заказать <cc.button>
-</c.card>
-
-<c.text> Введите ваше имя: <cc.text>
-<c.input> <cc.input>
 <c.button> Поздороваться <cc.button>
 
+<c.button> Сделать фон зелёным <cc.button>
+
 <c.style>
-кнопка
+кнопка {
   фон = зелёный
   цвет = белый
   отступ = 8px 16px
   углы = 8px
+}
 
-кнопка при наведении
-  фон = темно-зелёный
+кнопка при наведении {
+  фон = тёмно-зелёный
+}
 
-поле
+поле {
   отступ = 8px
   ширина = 200px
-  углы = 5px
+  углы = 6px
   рамка = 1px сплошной серый
-
-карточка
-  фон = белый
-  тень = 0 2px 8px серый
-  углы = 12px
-  отступ = 16px
+}
 </c.style>
 
 <c.script>
-когда нажата кнопка
-  имя = значение инпута
-  если имя равно 
-    показать "Введи имя!"
-  иначе
-    показать "Привет, " + имя
-конец
+кнопка {
+  при нажатии показать('Привет, мир!')
+}
 
-когда нажата кнопка купить
-  показать "Товар добавлен в корзину!"
-конец
+поле {
+  при вводе показать('Ввели: ' + значение)
+}
 
-когда нажата кнопка заказать
-  показать "Заказ оформлен!"
-конец
+кнопка {
+  при нажатии показать('Текст на кнопке: ' + текст)
+}
 </c.script>
 
 </CCURSED-CODING>`;
