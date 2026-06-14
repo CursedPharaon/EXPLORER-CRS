@@ -196,12 +196,22 @@
             if (closePos === -1) break;
             const innerRaw = code.substring(contentStart, closePos);
             i = closePos + closeTag.length;
-            if (tag === 'button') html += `<button class="crs-btn">${escapeHtml(innerRaw.trim()) || 'Кнопка'}</button>`;
-            else if (tag === 'input') html += `<input type="text" class="crs-input" placeholder="${escapeHtml(innerRaw.trim())}">`;
-            else if (tag === 'text') html += `<div>${escapeHtml(innerRaw)}</div>`;
-            else if (tag === 'title') html += `<h2>${escapeHtml(innerRaw)}</h2>`;
-            else if (tag === 'script') scripts.push(innerRaw);
-            else if (tag === 'card') html += `<div class="card">${escapeHtml(innerRaw)}</div>`;
+            
+            if (tag === 'button') {
+                html += `<button class="crs-btn">${escapeHtml(innerRaw.trim()) || 'Кнопка'}</button>`;
+            }
+            else if (tag === 'input') {
+                html += `<input type="text" class="crs-input" placeholder="${escapeHtml(innerRaw.trim())}">`;
+            }
+            else if (tag === 'text') {
+                html += `<div style="margin:5px 0;">${escapeHtml(innerRaw)}</div>`;
+            }
+            else if (tag === 'title') {
+                html += `<h2 style="margin:10px 0;">${escapeHtml(innerRaw)}</h2>`;
+            }
+            else if (tag === 'card') {
+                html += `<div class="card">${escapeHtml(innerRaw)}</div>`;
+            }
             else if (tag === 'style') {
                 let styleHtml = '';
                 const lines = innerRaw.split('\n');
@@ -221,7 +231,42 @@
                 }
                 if (styleHtml) html = `<style>${styleHtml}</style>` + html;
             }
-            else html += `<div>${escapeHtml(innerRaw)}</div>`;
+            else if (tag === 'script') {
+                let jsCode = '';
+                const lines = innerRaw.split('\n');
+                for (let line of lines) {
+                    line = line.trim();
+                    if (line.startsWith('когда нажата кнопка')) {
+                        jsCode += `document.querySelectorAll('.crs-btn').forEach(btn => { btn.onclick = function() { `;
+                    }
+                    else if (line.startsWith('когда нажата кнопка купить')) {
+                        jsCode += `document.querySelectorAll('.card .crs-btn').forEach(btn => { if(btn.innerText === 'Купить') btn.onclick = function() { `;
+                    }
+                    else if (line.startsWith('когда нажата кнопка заказать')) {
+                        jsCode += `document.querySelectorAll('.card .crs-btn').forEach(btn => { if(btn.innerText === 'Заказать') btn.onclick = function() { `;
+                    }
+                    else if (line.startsWith('имя = значение инпута')) {
+                        jsCode += `let name = document.querySelector('.crs-input').value; `;
+                    }
+                    else if (line.startsWith('показать')) {
+                        let msg = line.replace('показать', '').trim();
+                        jsCode += `alert(${JSON.stringify(msg)}); `;
+                    }
+                    else if (line.startsWith('если имя равно')) {
+                        jsCode += `if (name === "") { `;
+                    }
+                    else if (line === 'иначе') {
+                        jsCode += `} else { `;
+                    }
+                    else if (line === 'конец') {
+                        jsCode += `} }); `;
+                    }
+                }
+                if (jsCode) scripts.push(jsCode);
+            }
+            else {
+                html += `<div>${escapeHtml(innerRaw)}</div>`;
+            }
         }
         return { html, scripts };
     }
@@ -360,12 +405,15 @@
     показать "Введи имя!"
   иначе
     показать "Привет, " + имя
+конец
 
 когда нажата кнопка купить
   показать "Товар добавлен в корзину!"
+конец
 
 когда нажата кнопка заказать
   показать "Заказ оформлен!"
+конец
 </c.script>
 
 </CCURSED-CODING>`;
