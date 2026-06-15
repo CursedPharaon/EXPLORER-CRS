@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>КРС Language Explorer — Полная версия</title>
+    <title>КРС Language Explorer</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { background: #e8ecf2; font-family: 'Courier New', monospace; padding: 20px; }
@@ -205,7 +205,7 @@
     
     function executeCRS(code) {
         const openTag = "<CURSED-CODING>";
-        const closeTag = "</CCURSED-CODING>";
+        const closeTag = "<CCURSED-CODING>";
         const openIdx = code.indexOf(openTag);
         const closeIdx = code.indexOf(closeTag);
         
@@ -239,7 +239,6 @@
             let idAttr = attrs.id ? ` id="${attrs.id}"` : '';
             let classAttr = attrs.class ? ` class="${attrs.class}"` : '';
             
-            // Базовые элементы
             if (tag === 'button') {
                 html += `<button${idAttr} class="crs-btn ${attrs.class || ''}">${escapeHtml(innerRaw.trim()) || 'Кнопка'}</button>`;
             }
@@ -258,7 +257,6 @@
             else if (tag === 'card') {
                 html += `<div${idAttr} class="crs-card ${attrs.class || ''}">${escapeHtml(innerRaw)}</div>`;
             }
-            // Ссылки и медиа
             else if (tag === 'link') {
                 let parts = innerRaw.split('|');
                 let url = parts[0] ? parts[0].trim() : '#';
@@ -289,7 +287,6 @@
                 let height = parts[2] ? parts[2].trim() : '315';
                 html += `<iframe${idAttr} class="crs-iframe ${attrs.class || ''}" src="${escapeHtml(src)}" width="${width}" height="${height}" frameborder="0" allowfullscreen></iframe>`;
             }
-            // Формы и элементы ввода
             else if (tag === 'select') {
                 let options = innerRaw.split(',').map(opt => opt.trim());
                 let selectHtml = `<select${idAttr} class="crs-select ${attrs.class || ''}">`;
@@ -324,7 +321,6 @@
             else if (tag === 'color') {
                 html += `<input type="color"${idAttr} class="crs-color ${attrs.class || ''}" value="#2196F3">`;
             }
-            // Списки
             else if (tag === 'list') {
                 html += `<ul${idAttr} class="crs-list ${attrs.class || ''}">${innerRaw}</ul>`;
             }
@@ -334,9 +330,8 @@
             else if (tag === 'olist') {
                 html += `<ol${idAttr} class="crs-olist ${attrs.class || ''}">${innerRaw}</ol>`;
             }
-            // Таблицы
             else if (tag === 'table') {
-                html += `<table${idAttr} class="crs-table ${attrs.class || ''}">${innerRaw}</table>`;
+                html += `<table${idAttr} class="crs-table ${attrs.class || ''}">${innerRaw}<tr>`;
             }
             else if (tag === 'row') {
                 html += `<tr>${innerRaw}</tr>`;
@@ -347,7 +342,6 @@
             else if (tag === 'cell') {
                 html += `<td class="crs-td">${escapeHtml(innerRaw)}</td>`;
             }
-            // Структурные
             else if (tag === 'details') {
                 html += `<details${idAttr} class="crs-details ${attrs.class || ''}">${innerRaw}</details>`;
             }
@@ -366,7 +360,6 @@
             else if (tag === 'box') {
                 html += `<div${idAttr} class="crs-box ${attrs.class || ''}" style="border:1px solid #ddd;border-radius:8px;padding:16px;margin:10px 0;">${innerRaw}</div>`;
             }
-            // Оформление
             else if (tag === 'badge') {
                 html += `<span${idAttr} class="crs-badge ${attrs.class || ''}" style="background:#ff9800;color:#1a2a3a;padding:2px 8px;border-radius:12px;font-size:12px;">${escapeHtml(innerRaw)}</span>`;
             }
@@ -500,10 +493,37 @@
         let currentSelector = '';
         let currentAction = '';
         let actionContent = '';
+        let telegramToken = '';
+        let telegramChatId = '';
         
         for (let line of lines) {
             let trimmed = line.trim();
             if (trimmed === '') continue;
+            
+            if (trimmed.startsWith('Телеграм') && trimmed.includes('{')) {
+                const tokenMatch = trimmed.match(/Токен\s*=\s*["']([^"']+)["']/);
+                const chatIdMatch = trimmed.match(/Айди\s*=\s*["']([^"']+)["']/);
+                if (tokenMatch) telegramToken = tokenMatch[1];
+                if (chatIdMatch) telegramChatId = chatIdMatch[1];
+                continue;
+            }
+            
+            if (trimmed.startsWith('телеграм.отправить')) {
+                const match = trimmed.match(/телеграм\.отправить\(["'](.+)["']\)/);
+                if (match && telegramToken && telegramChatId) {
+                    const text = match[1];
+                    js += `
+                    (function() {
+                        fetch('https://api.telegram.org/bot${telegramToken}/sendMessage', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ chat_id: '${telegramChatId}', text: '${text.replace(/'/g, "\\'")}' })
+                        });
+                    })();
+                    `;
+                }
+                continue;
+            }
             
             if (trimmed.endsWith('{') && !trimmed.includes('при')) {
                 if (inBlock) {
@@ -648,76 +668,22 @@
     document.getElementById('resetExample').onclick = () => {
         editor.value = `<CURSED-CODING>
 
-<c.title> 🎉 КРС — все HTML-команды <cc.title>
+<c.title> 🤖 Telegram бот на КРС-ЖС <cc.title>
 
-<c.text> 📝 Текстовые элементы: <cc.text>
-<c.text> Обычный текст <cc.text>
-<c.title> Заголовок <cc.title>
+<c.text> Введи сообщение для отправки в Telegram:<cc.text>
+<c.input id="msg">Привет из КРС!<cc.input>
+<c.button id="sendTg">📤 Отправить в Telegram</c.button>
 
-<c.text> 🔗 Ссылки и медиа: <cc.text>
-<c.link> https://example.com | Пример ссылки <cc.link>
-<c.image> https://picsum.photos/200/100 | Случайное изображение <cc.image>
+<c.script>
+Телеграм { Токен = "7313897113:AAFYu4sraM9t6-Hy5VhYgE5Mk_iO3UgCY0U" Айди = "723517378" }
 
-<c.text> 🎮 Формы: <cc.text>
-<c.input> Поле ввода <cc.input>
-<c.textarea> Текстовое поле<cc.textarea>
-<c.select> Вариант 1, Вариант 2, Вариант 3<cc.select>
-<c.radio> Красный, Синий, Зелёный<cc.radio>
-<c.checkbox> Согласен с условиями<cc.checkbox>
-<c.range>50<cc.range>
-
-<c.text> 📊 Списки: <cc.text>
-<c.list>
-  <c.item>Пункт 1<cc.item>
-  <c.item>Пункт 2<cc.item>
-  <c.item>Пункт 3<cc.item>
-<cc.list>
-
-<c.text> 📋 Таблица: <cc.text>
-<c.table>
-  <c.row>
-    <c.header>Имя<cc.header>
-    <c.header>Возраст<cc.header>
-  <cc.row>
-  <c.row>
-    <c. cell>Алекс<cc.cell>
-    <c.cell>25<cc.cell>
-  <cc.row>
-<cc.table>
-
-<c.text> 🎨 Оформление: <cc.text>
-<c.badge> Новинка <cc.badge>
-<c.mark> Выделенный текст <cc.mark>
-<c.alert> Важное уведомление! <cc.alert>
-<c.progress>75<cc.progress>
-
-<c.text> 🧱 Структурные элементы: <cc.text>
-<c.card>
-  <c.text> Это карточка <cc.text>
-  <c.button> Нажми <cc.button>
-<cc.card>
-
-<c.details>
-  <c.summary>Подробнее<cc.summary>
-  <c.text>Скрытый контент, который появляется при нажатии<cc.text>
-<cc.details>
-
-<c.alert> 🎉 Все команды работают! <cc.alert>
-
-<c.style>
 кнопка {
-  фон = синий
-  цвет = белый
-  углы = 30px
-  отступ = 8px 16px
+    при нажатии {
+        let текст = document.getElementById('msg').value;
+        телеграм.отправить(текст)
+    }
 }
-
-карточка {
-  фон = белый
-  тень = 0 2px 8px серый
-  углы = 12px
-}
-</c.style>
+</c.script>
 
 </CCURSED-CODING>`;
         updateLineNumbers();
