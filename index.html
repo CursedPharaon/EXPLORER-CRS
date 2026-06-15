@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>КРС Language Explorer</title>
+    <title>КРС Language Explorer — Полная версия</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { background: #e8ecf2; font-family: 'Courier New', monospace; padding: 20px; }
@@ -47,6 +47,15 @@
         .crs-details { margin: 10px 0; padding: 10px; background: #f5f5f5; border-radius: 8px; }
         .crs-summary { font-weight: bold; cursor: pointer; }
         .crs-code { background: #1e2a2f; color: #d4d4d4; padding: 10px; border-radius: 8px; font-family: monospace; overflow-x: auto; }
+        .crs-textarea { padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin: 5px 0; width: 100%; resize: vertical; }
+        .crs-link { color: #2196F3; text-decoration: underline; cursor: pointer; }
+        .crs-checkbox { display: block; margin: 5px 0; }
+        .crs-badge { background: #ff9800; color: #1a2a3a; padding: 2px 8px; border-radius: 12px; font-size: 12px; display: inline-block; }
+        .crs-mark { background: #ffeb3b; padding: 2px 4px; }
+        .crs-alert { background: #fff3e0; border-left: 4px solid #ff9800; padding: 12px; margin: 10px 0; border-radius: 8px; }
+        .crs-progress { width: 100%; margin: 5px 0; }
+        .crs-tooltip { border-bottom: 1px dotted #666; cursor: help; }
+        .crs-spacer { width: 100%; }
     </style>
 </head>
 <body>
@@ -74,6 +83,7 @@
                 <button id="allAppsBtn">🌐 ВСЕ</button>
                 <button id="resetExample">📋 ПРИМЕР</button>
                 <button id="clearOutput">🗑 ОЧИСТИТЬ</button>
+                <button id="tgSetupBtn" style="background:#e8f5e9;border-color:#4CAF50;">🤖 ТЕЛЕГРАМ</button>
             </div>
         </div>
         <div class="output-panel">
@@ -111,6 +121,42 @@
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRtanFhZnFlY2pwaXphd2RydXpxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk4OTk2OTYsImV4cCI6MjA5NTQ3NTY5Nn0.8K7i5QEbjYWSvqw78P8RSR_abYM8uCRZbvC9Hp12bac';
     
     let currentUser = null;
+    
+    // ========== TELEGRAM ==========
+    let userBotToken = localStorage.getItem('crs_tg_token') || '';
+    let userBotChatId = localStorage.getItem('crs_tg_chat_id') || '';
+
+    window.setupTelegram = function() {
+        const token = prompt('Введите токен бота (от @BotFather):', userBotToken);
+        if (!token) return;
+        const chatId = prompt('Введите ваш Chat ID (узнайте через @userinfobot):', userBotChatId);
+        if (!chatId) return;
+        userBotToken = token;
+        userBotChatId = chatId;
+        localStorage.setItem('crs_tg_token', token);
+        localStorage.setItem('crs_tg_chat_id', chatId);
+        window.alert('✅ Telegram настроен! Токен сохранён только в вашем браузере.');
+    };
+
+    window.sendToTelegram = async function(message) {
+        if (!userBotToken || !userBotChatId) {
+            window.alert('⚠️ Сначала настройте Telegram (кнопка 🤖 ТЕЛЕГРАМ)');
+            return;
+        }
+        try {
+            const url = `https://api.telegram.org/bot${userBotToken}/sendMessage`;
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ chat_id: userBotChatId, text: String(message), parse_mode: 'HTML' })
+            });
+            const data = await response.json();
+            if (!data.ok) window.alert('❌ Ошибка Telegram: ' + data.description);
+        } catch(e) {
+            window.alert('❌ Ошибка отправки: ' + e.message);
+        }
+    };
+    // ========== END TELEGRAM ==========
     
     window.alert = function(msg) {
         const old = document.querySelector('.crs-modal');
@@ -205,7 +251,7 @@
     
     function executeCRS(code) {
         const openTag = "<CURSED-CODING>";
-        const closeTag = "<CCURSED-CODING>";
+        const closeTag = "</CCURSED-CODING>";
         const openIdx = code.indexOf(openTag);
         const closeIdx = code.indexOf(closeTag);
         
@@ -221,7 +267,7 @@
         let i = 0;
         
         while (i < content.length) {
-            const openMatch = content.substring(i).match(/<c\.([a-zA-Zа-яА-Я]+)([^>]*)>/);
+            const openMatch = content.substring(i).match(/<c\.([a-zA-Zа-яА-Я_]+)([^>]*)>/);
             if (!openMatch) break;
             
             const tag = openMatch[1].toLowerCase();
@@ -239,7 +285,12 @@
             let idAttr = attrs.id ? ` id="${attrs.id}"` : '';
             let classAttr = attrs.class ? ` class="${attrs.class}"` : '';
             
-            if (tag === 'button') {
+            // TELEGRAM_SETUP
+            if (tag === 'telegram_setup') {
+                html += `<button${idAttr} class="crs-btn ${attrs.class || ''}" onclick="setupTelegram()" style="background:#2196F3;">🤖 Настроить Telegram</button>`;
+            }
+            // Базовые элементы
+            else if (tag === 'button') {
                 html += `<button${idAttr} class="crs-btn ${attrs.class || ''}">${escapeHtml(innerRaw.trim()) || 'Кнопка'}</button>`;
             }
             else if (tag === 'input') {
@@ -257,6 +308,7 @@
             else if (tag === 'card') {
                 html += `<div${idAttr} class="crs-card ${attrs.class || ''}">${escapeHtml(innerRaw)}</div>`;
             }
+            // Ссылки и медиа
             else if (tag === 'link') {
                 let parts = innerRaw.split('|');
                 let url = parts[0] ? parts[0].trim() : '#';
@@ -287,6 +339,7 @@
                 let height = parts[2] ? parts[2].trim() : '315';
                 html += `<iframe${idAttr} class="crs-iframe ${attrs.class || ''}" src="${escapeHtml(src)}" width="${width}" height="${height}" frameborder="0" allowfullscreen></iframe>`;
             }
+            // Формы и элементы ввода
             else if (tag === 'select') {
                 let options = innerRaw.split(',').map(opt => opt.trim());
                 let selectHtml = `<select${idAttr} class="crs-select ${attrs.class || ''}">`;
@@ -321,6 +374,7 @@
             else if (tag === 'color') {
                 html += `<input type="color"${idAttr} class="crs-color ${attrs.class || ''}" value="#2196F3">`;
             }
+            // Списки
             else if (tag === 'list') {
                 html += `<ul${idAttr} class="crs-list ${attrs.class || ''}">${innerRaw}</ul>`;
             }
@@ -330,8 +384,9 @@
             else if (tag === 'olist') {
                 html += `<ol${idAttr} class="crs-olist ${attrs.class || ''}">${innerRaw}</ol>`;
             }
+            // Таблицы
             else if (tag === 'table') {
-                html += `<table${idAttr} class="crs-table ${attrs.class || ''}">${innerRaw}<tr>`;
+                html += `<table${idAttr} class="crs-table ${attrs.class || ''}">${innerRaw}</table>`;
             }
             else if (tag === 'row') {
                 html += `<tr>${innerRaw}</tr>`;
@@ -342,6 +397,7 @@
             else if (tag === 'cell') {
                 html += `<td class="crs-td">${escapeHtml(innerRaw)}</td>`;
             }
+            // Структурные
             else if (tag === 'details') {
                 html += `<details${idAttr} class="crs-details ${attrs.class || ''}">${innerRaw}</details>`;
             }
@@ -360,6 +416,7 @@
             else if (tag === 'box') {
                 html += `<div${idAttr} class="crs-box ${attrs.class || ''}" style="border:1px solid #ddd;border-radius:8px;padding:16px;margin:10px 0;">${innerRaw}</div>`;
             }
+            // Оформление
             else if (tag === 'badge') {
                 html += `<span${idAttr} class="crs-badge ${attrs.class || ''}" style="background:#ff9800;color:#1a2a3a;padding:2px 8px;border-radius:12px;font-size:12px;">${escapeHtml(innerRaw)}</span>`;
             }
@@ -493,37 +550,10 @@
         let currentSelector = '';
         let currentAction = '';
         let actionContent = '';
-        let telegramToken = '';
-        let telegramChatId = '';
         
         for (let line of lines) {
             let trimmed = line.trim();
             if (trimmed === '') continue;
-            
-            if (trimmed.startsWith('Телеграм') && trimmed.includes('{')) {
-                const tokenMatch = trimmed.match(/Токен\s*=\s*["']([^"']+)["']/);
-                const chatIdMatch = trimmed.match(/Айди\s*=\s*["']([^"']+)["']/);
-                if (tokenMatch) telegramToken = tokenMatch[1];
-                if (chatIdMatch) telegramChatId = chatIdMatch[1];
-                continue;
-            }
-            
-            if (trimmed.startsWith('телеграм.отправить')) {
-                const match = trimmed.match(/телеграм\.отправить\(["'](.+)["']\)/);
-                if (match && telegramToken && telegramChatId) {
-                    const text = match[1];
-                    js += `
-                    (function() {
-                        fetch('https://api.telegram.org/bot${telegramToken}/sendMessage', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ chat_id: '${telegramChatId}', text: '${text.replace(/'/g, "\\'")}' })
-                        });
-                    })();
-                    `;
-                }
-                continue;
-            }
             
             if (trimmed.endsWith('{') && !trimmed.includes('при')) {
                 if (inBlock) {
@@ -588,6 +618,21 @@
         else return '';
         
         let jsCode = actionCode;
+        
+        // Обработка отправки в Telegram
+        if (jsCode.includes('отправить_тг')) {
+            const msgMatch = jsCode.match(/отправить_тг\(["'`](.+?)["'`]\)/);
+            if (msgMatch) {
+                let msgContent = msgMatch[1];
+                jsCode = jsCode.replace(msgMatch[0], `sendToTelegram(\`${msgContent}\`)`);
+            } else {
+                const msgMatch2 = jsCode.match(/отправить_тг\((.+?)\)/);
+                if (msgMatch2) {
+                    jsCode = jsCode.replace(msgMatch2[0], `sendToTelegram(${msgMatch2[1]})`);
+                }
+            }
+        }
+        
         jsCode = jsCode.replace(/показать\(/g, 'alert(');
         jsCode = jsCode.replace(/значение/g, 'this.value');
         jsCode = jsCode.replace(/имя/g, 'this.value');
@@ -665,25 +710,45 @@
     document.getElementById('saveAppBtn').onclick = saveApp;
     document.getElementById('myAppsBtn').onclick = showMyApps;
     document.getElementById('allAppsBtn').onclick = showAllApps;
+    document.getElementById('tgSetupBtn').onclick = setupTelegram;
     document.getElementById('resetExample').onclick = () => {
         editor.value = `<CURSED-CODING>
 
-<c.title> 🤖 Telegram бот на КРС-ЖС <cc.title>
+<c.title> 🎉 КРС — все HTML-команды <cc.title>
 
-<c.text> Введи сообщение для отправки в Telegram:<cc.text>
-<c.input id="msg">Привет из КРС!<cc.input>
-<c.button id="sendTg">📤 Отправить в Telegram</c.button>
+<c.text> 📝 Текстовые элементы: <cc.text>
+<c.text> Обычный текст <cc.text>
+<c.title> Заголовок <cc.title>
+
+<c.text> 🤖 Telegram интеграция: <cc.text>
+<c.telegram_setup> Настроить бота <cc.telegram_setup>
+<c.input id="nameInput" placeholder="Ваше имя"><cc.input>
+<c.button id="sendBtn">📩 Отправить в Telegram<cc.button>
 
 <c.script>
-Телеграм { Токен = "7313897113:AAFYu4sraM9t6-Hy5VhYgE5Mk_iO3UgCY0U" Айди = "723517378" }
-
 кнопка {
-    при нажатии {
-        let текст = document.getElementById('msg').value;
-        телеграм.отправить(текст)
-    }
+  при нажатии отправить_тг("Привет, " + имя)
 }
 </c.script>
+
+<c.text> 🔗 Ссылки и медиа: <cc.text>
+<c.link> https://example.com | Пример ссылки <cc.link>
+<c.image> https://picsum.photos/200/100 | Случайное изображение <cc.image>
+
+<c.text> 🎮 Формы: <cc.text>
+<c.input> Поле ввода <cc.input>
+<c.select> Вариант 1, Вариант 2, Вариант 3<cc.select>
+<c.radio> Красный, Синий, Зелёный<cc.radio>
+<c.checkbox> Согласен с условиями<cc.checkbox>
+
+<c.text> 📊 Списки: <cc.text>
+<c.list>
+  <c.item>Пункт 1<cc.item>
+  <c.item>Пункт 2<cc.item>
+  <c.item>Пункт 3<cc.item>
+<cc.list>
+
+<c.alert> 🎉 Все команды работают! <cc.alert>
 
 </CCURSED-CODING>`;
         updateLineNumbers();
