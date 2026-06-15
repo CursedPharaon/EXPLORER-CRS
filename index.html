@@ -121,42 +121,67 @@
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRtanFhZnFlY2pwaXphd2RydXpxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk4OTk2OTYsImV4cCI6MjA5NTQ3NTY5Nn0.8K7i5QEbjYWSvqw78P8RSR_abYM8uCRZbvC9Hp12bac';
     
     let currentUser = null;
-    
-    // ========== TELEGRAM ==========
-    let userBotToken = localStorage.getItem('crs_tg_token') || '';
-    let userBotChatId = localStorage.getItem('crs_tg_chat_id') || '';
+    let currentAppId = null;
+    let tgTokenCache = null;
+    let tgChatIdCache = null;
 
-    window.setupTelegram = function() {
-        const token = prompt('Введите токен бота (от @BotFather):', userBotToken);
+    window.setupTelegram = async function() {
+        if (!currentUser) { alert("Сначала войдите"); return; }
+        
+        const token = prompt('Введите токен бота (от @BotFather):', tgTokenCache || '');
         if (!token) return;
-        const chatId = prompt('Введите ваш Chat ID (узнайте через @userinfobot):', userBotChatId);
+        const chatId = prompt('Введите ваш Chat ID:', tgChatIdCache || '');
         if (!chatId) return;
-        userBotToken = token;
-        userBotChatId = chatId;
-        localStorage.setItem('crs_tg_token', token);
-        localStorage.setItem('crs_tg_chat_id', chatId);
-        window.alert('✅ Telegram настроен! Токен сохранён только в вашем браузере.');
+        
+        tgTokenCache = token;
+        tgChatIdCache = chatId;
+        
+        alert('✅ Токен сохранён! При сохранении приложения он будет привязан к нему.');
     };
 
     window.sendToTelegram = async function(message) {
-        if (!userBotToken || !userBotChatId) {
-            window.alert('⚠️ Сначала настройте Telegram (кнопка 🤖 ТЕЛЕГРАМ)');
-            return;
-        }
         try {
-            const url = `https://api.telegram.org/bot${userBotToken}/sendMessage`;
-            const response = await fetch(url, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ chat_id: userBotChatId, text: String(message), parse_mode: 'HTML' })
-            });
-            const data = await response.json();
-            if (!data.ok) window.alert('❌ Ошибка Telegram: ' + data.description);
+            // Ищем токен в кеше
+            if (tgTokenCache && tgChatIdCache) {
+                const url = `https://api.telegram.org/bot${tgTokenCache}/sendMessage`;
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ chat_id: tgChatIdCache, text: String(message), parse_mode: 'HTML' })
+                });
+                const data = await response.json();
+                if (!data.ok) throw new Error(data.description);
+                return;
+            }
+            
+            // Ищем в Supabase
+            if (currentAppId) {
+                const res = await fetch(`${SUPABASE_URL}/rest/v1/crs_tg_bots?app_id=eq.${currentAppId}&select=*`, {
+                    headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` }
+                });
+                const bots = await res.json();
+                if (bots && bots.length > 0) {
+                    const bot = bots[0];
+                    tgTokenCache = bot.bot_token;
+                    tgChatIdCache = bot.chat_id;
+                    
+                    const url = `https://api.telegram.org/bot${bot.bot_token}/sendMessage`;
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ chat_id: bot.chat_id, text: String(message), parse_mode: 'HTML' })
+                    });
+                    const data = await response.json();
+                    if (!data.ok) throw new Error(data.description);
+                    return;
+                }
+            }
+            
+            alert('⚠️ Telegram бот не настроен для этого приложения');
         } catch(e) {
-            window.alert('❌ Ошибка отправки: ' + e.message);
+            console.error('Telegram error:', e);
         }
     };
-    // ========== END TELEGRAM ==========
     
     window.alert = function(msg) {
         const old = document.querySelector('.crs-modal');
@@ -204,7 +229,10 @@
     }
     
     function logout() {
-        currentUser = null; localStorage.removeItem('crs_user');
+        currentUser = null; 
+        tgTokenCache = null;
+        tgChatIdCache = null;
+        localStorage.removeItem('crs_user');
         document.getElementById('currentUser').innerText = "Гость";
         document.getElementById('showLoginBtn').style.display = 'inline-block';
         document.getElementById('showRegisterBtn').style.display = 'inline-block';
@@ -218,11 +246,36 @@
         if (!title) return;
         const code = document.getElementById('crsCode').value;
         if (!code) { alert("Код пуст"); return; }
-        await fetch(`${SUPABASE_URL}/rest/v1/crs_apps`, {
-            method: 'POST', headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ title, code, author_id: currentUser.id, is_public: true })
-        });
-        alert("Сохранено!");
+        
+        try {
+            const res = await fetch(`${SUPABASE_URL}/rest/v1/crs_apps`, {
+                method: 'POST', 
+                headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ title, code, author_id: currentUser.id, is_public: true })
+            });
+            
+            if (res.ok) {
+                const newApp = await res.json();
+                if (newApp && newApp.length > 0) {
+                    currentAppId = newApp[0].id;
+                    
+                    // Сохраняем токен если есть
+                    if (tgTokenCache && tgChatIdCache) {
+                        await fetch(`${SUPABASE_URL}/rest/v1/crs_tg_bots`, {
+                            method: 'POST',
+                            headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                app_id: currentAppId,
+                                author_id: currentUser.id,
+                                bot_token: tgTokenCache,
+                                chat_id: tgChatIdCache
+                            })
+                        });
+                    }
+                }
+                alert("Сохранено!");
+            }
+        } catch(e) { alert("Ошибка сохранения"); }
     }
     
     async function getMyApps() {
@@ -285,11 +338,9 @@
             let idAttr = attrs.id ? ` id="${attrs.id}"` : '';
             let classAttr = attrs.class ? ` class="${attrs.class}"` : '';
             
-            // TELEGRAM_SETUP
             if (tag === 'telegram_setup') {
-                html += `<button${idAttr} class="crs-btn ${attrs.class || ''}" onclick="setupTelegram()" style="background:#2196F3;">🤖 Настроить Telegram</button>`;
+                html += `<button${idAttr} class="crs-btn ${attrs.class || ''}" onclick="setupTelegram()" style="background:#2196F3;">${escapeHtml(innerRaw.trim()) || '🤖 Настроить Telegram'}</button>`;
             }
-            // Базовые элементы
             else if (tag === 'button') {
                 html += `<button${idAttr} class="crs-btn ${attrs.class || ''}">${escapeHtml(innerRaw.trim()) || 'Кнопка'}</button>`;
             }
@@ -308,7 +359,6 @@
             else if (tag === 'card') {
                 html += `<div${idAttr} class="crs-card ${attrs.class || ''}">${escapeHtml(innerRaw)}</div>`;
             }
-            // Ссылки и медиа
             else if (tag === 'link') {
                 let parts = innerRaw.split('|');
                 let url = parts[0] ? parts[0].trim() : '#';
@@ -339,7 +389,6 @@
                 let height = parts[2] ? parts[2].trim() : '315';
                 html += `<iframe${idAttr} class="crs-iframe ${attrs.class || ''}" src="${escapeHtml(src)}" width="${width}" height="${height}" frameborder="0" allowfullscreen></iframe>`;
             }
-            // Формы и элементы ввода
             else if (tag === 'select') {
                 let options = innerRaw.split(',').map(opt => opt.trim());
                 let selectHtml = `<select${idAttr} class="crs-select ${attrs.class || ''}">`;
@@ -374,7 +423,6 @@
             else if (tag === 'color') {
                 html += `<input type="color"${idAttr} class="crs-color ${attrs.class || ''}" value="#2196F3">`;
             }
-            // Списки
             else if (tag === 'list') {
                 html += `<ul${idAttr} class="crs-list ${attrs.class || ''}">${innerRaw}</ul>`;
             }
@@ -384,7 +432,6 @@
             else if (tag === 'olist') {
                 html += `<ol${idAttr} class="crs-olist ${attrs.class || ''}">${innerRaw}</ol>`;
             }
-            // Таблицы
             else if (tag === 'table') {
                 html += `<table${idAttr} class="crs-table ${attrs.class || ''}">${innerRaw}</table>`;
             }
@@ -397,7 +444,6 @@
             else if (tag === 'cell') {
                 html += `<td class="crs-td">${escapeHtml(innerRaw)}</td>`;
             }
-            // Структурные
             else if (tag === 'details') {
                 html += `<details${idAttr} class="crs-details ${attrs.class || ''}">${innerRaw}</details>`;
             }
@@ -416,7 +462,6 @@
             else if (tag === 'box') {
                 html += `<div${idAttr} class="crs-box ${attrs.class || ''}" style="border:1px solid #ddd;border-radius:8px;padding:16px;margin:10px 0;">${innerRaw}</div>`;
             }
-            // Оформление
             else if (tag === 'badge') {
                 html += `<span${idAttr} class="crs-badge ${attrs.class || ''}" style="background:#ff9800;color:#1a2a3a;padding:2px 8px;border-radius:12px;font-size:12px;">${escapeHtml(innerRaw)}</span>`;
             }
@@ -619,7 +664,6 @@
         
         let jsCode = actionCode;
         
-        // Обработка отправки в Telegram
         if (jsCode.includes('отправить_тг')) {
             const msgMatch = jsCode.match(/отправить_тг\(["'`](.+?)["'`]\)/);
             if (msgMatch) {
@@ -652,6 +696,20 @@
     
     async function loadApp(app) {
         document.getElementById('crsCode').value = app.code;
+        currentAppId = app.id;
+        
+        // Загружаем токен из Supabase
+        if (currentUser) {
+            const res = await fetch(`${SUPABASE_URL}/rest/v1/crs_tg_bots?app_id=eq.${app.id}&select=*`, {
+                headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` }
+            });
+            const bots = await res.json();
+            if (bots && bots.length > 0) {
+                tgTokenCache = bots[0].bot_token;
+                tgChatIdCache = bots[0].chat_id;
+            }
+        }
+        
         updateLineNumbers();
         executeCRS(app.code);
         alert("Загружено: " + app.title);
@@ -714,41 +772,25 @@
     document.getElementById('resetExample').onclick = () => {
         editor.value = `<CURSED-CODING>
 
-<c.title> 🎉 КРС — все HTML-команды <cc.title>
+<c.title> 🎉 КРС — Telegram интеграция <cc.title>
 
-<c.text> 📝 Текстовые элементы: <cc.text>
-<c.text> Обычный текст <cc.text>
-<c.title> Заголовок <cc.title>
+<c.telegram_setup> 🤖 Настроить бота <cc.telegram_setup>
 
-<c.text> 🤖 Telegram интеграция: <cc.text>
-<c.telegram_setup> Настроить бота <cc.telegram_setup>
 <c.input id="nameInput" placeholder="Ваше имя"><cc.input>
-<c.button id="sendBtn">📩 Отправить в Telegram<cc.button>
+<c.input id="orderInput" placeholder="Ваш заказ"><cc.input>
+
+<c.button> 📩 Отправить заказ в Telegram <cc.button>
 
 <c.script>
 кнопка {
-  при нажатии отправить_тг("Привет, " + имя)
+  при нажатии отправить_тг("🛒 Новый заказ!\nИмя: " + имя + "\nЗаказ: " + значение)
 }
 </c.script>
 
-<c.text> 🔗 Ссылки и медиа: <cc.text>
-<c.link> https://example.com | Пример ссылки <cc.link>
-<c.image> https://picsum.photos/200/100 | Случайное изображение <cc.image>
-
-<c.text> 🎮 Формы: <cc.text>
-<c.input> Поле ввода <cc.input>
-<c.select> Вариант 1, Вариант 2, Вариант 3<cc.select>
-<c.radio> Красный, Синий, Зелёный<cc.radio>
-<c.checkbox> Согласен с условиями<cc.checkbox>
-
-<c.text> 📊 Списки: <cc.text>
-<c.list>
-  <c.item>Пункт 1<cc.item>
-  <c.item>Пункт 2<cc.item>
-  <c.item>Пункт 3<cc.item>
-<cc.list>
-
-<c.alert> 🎉 Все команды работают! <cc.alert>
+<c.alert> 1. Нажми 🤖 Настроить бота и введи токен
+2. Нажми 💾 Сохранить
+3. Открой приложение из Мои
+4. Отправь тестовый заказ <cc.alert>
 
 </CCURSED-CODING>`;
         updateLineNumbers();
