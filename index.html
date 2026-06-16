@@ -47,15 +47,6 @@
         .crs-details { margin: 10px 0; padding: 10px; background: #f5f5f5; border-radius: 8px; }
         .crs-summary { font-weight: bold; cursor: pointer; }
         .crs-code { background: #1e2a2f; color: #d4d4d4; padding: 10px; border-radius: 8px; font-family: monospace; overflow-x: auto; }
-        .crs-textarea { padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin: 5px 0; width: 100%; resize: vertical; }
-        .crs-link { color: #2196F3; text-decoration: underline; cursor: pointer; }
-        .crs-checkbox { display: block; margin: 5px 0; }
-        .crs-badge { background: #ff9800; color: #1a2a3a; padding: 2px 8px; border-radius: 12px; font-size: 12px; display: inline-block; }
-        .crs-mark { background: #ffeb3b; padding: 2px 4px; }
-        .crs-alert { background: #fff3e0; border-left: 4px solid #ff9800; padding: 12px; margin: 10px 0; border-radius: 8px; }
-        .crs-progress { width: 100%; margin: 5px 0; }
-        .crs-tooltip { border-bottom: 1px dotted #666; cursor: help; }
-        .crs-spacer { width: 100%; }
     </style>
 </head>
 <body>
@@ -74,14 +65,7 @@
             <div class="editor-header"><span>РЕДАКТОР КРС</span><span id="lineCountInfo">строк: 0</span></div>
             <div class="editor-with-lines">
                 <div class="line-numbers" id="lineNumbers"></div>
-                <textarea id="crsCode" rows="18"><CURSED-CODING>
-<c.title>Проверка Telegram<cc.title>
-<c.input id="name" placeholder="Имя"><cc.input>
-<c.button>Отправить<cc.button>
-<c.script>
-кнопка { при нажатии отправить_тг("Имя: " + имя) }
-</c.script>
-</CCURSED-CODING></textarea>
+                <textarea id="crsCode" rows="18"></textarea>
             </div>
             <div class="button-bar">
                 <button id="runBtn">▶ ЗАПУСТИТЬ</button>
@@ -90,7 +74,6 @@
                 <button id="allAppsBtn">🌐 ВСЕ</button>
                 <button id="resetExample">📋 ПРИМЕР</button>
                 <button id="clearOutput">🗑 ОЧИСТИТЬ</button>
-                <button id="tgSetupBtn" style="background:#e8f5e9;border-color:#4CAF50;">🤖 ТЕЛЕГРАМ</button>
             </div>
         </div>
         <div class="output-panel">
@@ -103,16 +86,16 @@
 
 <div id="loginModal" class="modal"><div class="modal-content">
     <h3>Вход</h3>
-    <input type="text" id="loginUsername" placeholder="Имя"><br><br>
-    <input type="password" id="loginPassword" placeholder="Пароль"><br><br>
+    <input type="text" id="loginUsername" placeholder="Имя"><br>
+    <input type="password" id="loginPassword" placeholder="Пароль"><br>
     <button id="loginSubmitBtn">Войти</button>
     <button id="closeLoginBtn">Отмена</button>
 </div></div>
 
 <div id="registerModal" class="modal"><div class="modal-content">
     <h3>Регистрация</h3>
-    <input type="text" id="regUsername" placeholder="Имя"><br><br>
-    <input type="password" id="regPassword" placeholder="Пароль"><br><br>
+    <input type="text" id="regUsername" placeholder="Имя"><br>
+    <input type="password" id="regPassword" placeholder="Пароль"><br>
     <button id="registerSubmitBtn">Зарегистрироваться</button>
     <button id="closeRegisterBtn">Отмена</button>
 </div></div>
@@ -128,48 +111,6 @@
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRtanFhZnFlY2pwaXphd2RydXpxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk4OTk2OTYsImV4cCI6MjA5NTQ3NTY5Nn0.8K7i5QEbjYWSvqw78P8RSR_abYM8uCRZbvC9Hp12bac';
     
     let currentUser = null;
-    let currentAppId = null;
-    let tgTokenCache = localStorage.getItem('crs_tg_token') || '';
-    let tgChatIdCache = localStorage.getItem('crs_tg_chat_id') || '';
-
-    window.setupTelegram = function() {
-        const token = prompt('Токен бота (от @BotFather):', tgTokenCache);
-        if (!token) return;
-        const chatId = prompt('Ваш Chat ID (от @userinfobot):', tgChatIdCache);
-        if (!chatId) return;
-        
-        tgTokenCache = token;
-        tgChatIdCache = chatId;
-        localStorage.setItem('crs_tg_token', token);
-        localStorage.setItem('crs_tg_chat_id', chatId);
-        alert('✅ Сохранено! Токен: ' + token.substring(0,10) + '...');
-    };
-
-    window.sendToTelegram = async function(message) {
-        alert('Отправка...\nТокен: ' + (tgTokenCache ? tgTokenCache.substring(0,10)+'...' : 'НЕТ') + '\nChat ID: ' + (tgChatIdCache || 'НЕТ'));
-        
-        if (!tgTokenCache || !tgChatIdCache) {
-            alert('❌ Нет токена!\nНажми кнопку 🤖 ТЕЛЕГРАМ вверху');
-            return;
-        }
-        
-        try {
-            const url = `https://api.telegram.org/bot${tgTokenCache}/sendMessage`;
-            const response = await fetch(url, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ chat_id: tgChatIdCache, text: String(message) })
-            });
-            const data = await response.json();
-            if (data.ok) {
-                alert('✅ Отправлено в Telegram!');
-            } else {
-                alert('❌ Ошибка Telegram: ' + data.description);
-            }
-        } catch(e) {
-            alert('❌ Ошибка сети: ' + e.message);
-        }
-    };
     
     window.alert = function(msg) {
         const old = document.querySelector('.crs-modal');
@@ -231,23 +172,11 @@
         if (!title) return;
         const code = document.getElementById('crsCode').value;
         if (!code) { alert("Код пуст"); return; }
-        try {
-            const res = await fetch(`${SUPABASE_URL}/rest/v1/crs_apps`, {
-                method: 'POST', headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json' },
-                body: JSON.stringify({ title, code, author_id: currentUser.id, is_public: true })
-            });
-            const newApp = await res.json();
-            if (newApp && newApp.length > 0) {
-                currentAppId = newApp[0].id;
-                if (tgTokenCache && tgChatIdCache) {
-                    await fetch(`${SUPABASE_URL}/rest/v1/crs_tg_bots`, {
-                        method: 'POST', headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ app_id: currentAppId, author_id: currentUser.id, bot_token: tgTokenCache, chat_id: tgChatIdCache })
-                    });
-                }
-            }
-            alert("Сохранено!");
-        } catch(e) { alert("Ошибка сохранения"); }
+        await fetch(`${SUPABASE_URL}/rest/v1/crs_apps`, {
+            method: 'POST', headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ title, code, author_id: currentUser.id, is_public: true })
+        });
+        alert("Сохранено!");
     }
     
     async function getMyApps() {
@@ -276,7 +205,7 @@
     
     function executeCRS(code) {
         const openTag = "<CURSED-CODING>";
-        const closeTag = "</CCURSED-CODING>";
+        const closeTag = "<CCURSED-CODING>";
         const openIdx = code.indexOf(openTag);
         const closeIdx = code.indexOf(closeTag);
         
@@ -292,7 +221,7 @@
         let i = 0;
         
         while (i < content.length) {
-            const openMatch = content.substring(i).match(/<c\.([a-zA-Zа-яА-Я_]+)([^>]*)>/);
+            const openMatch = content.substring(i).match(/<c\.([a-zA-Zа-яА-Я]+)([^>]*)>/);
             if (!openMatch) break;
             
             const tag = openMatch[1].toLowerCase();
@@ -343,24 +272,36 @@
             else if (tag === 'video') {
                 let parts = innerRaw.split('|');
                 let src = parts[0] ? parts[0].trim() : '';
-                html += `<video${idAttr} class="crs-video ${attrs.class || ''}" src="${escapeHtml(src)}" controls></video>`;
+                let controls = parts[1] === 'controls' ? ' controls' : '';
+                html += `<video${idAttr} class="crs-video ${attrs.class || ''}" src="${escapeHtml(src)}"${controls}></video>`;
             }
             else if (tag === 'audio') {
                 let parts = innerRaw.split('|');
                 let src = parts[0] ? parts[0].trim() : '';
                 html += `<audio${idAttr} class="crs-audio ${attrs.class || ''}" src="${escapeHtml(src)}" controls></audio>`;
             }
+            else if (tag === 'iframe') {
+                let parts = innerRaw.split('|');
+                let src = parts[0] ? parts[0].trim() : '';
+                let width = parts[1] ? parts[1].trim() : '560';
+                let height = parts[2] ? parts[2].trim() : '315';
+                html += `<iframe${idAttr} class="crs-iframe ${attrs.class || ''}" src="${escapeHtml(src)}" width="${width}" height="${height}" frameborder="0" allowfullscreen></iframe>`;
+            }
             else if (tag === 'select') {
                 let options = innerRaw.split(',').map(opt => opt.trim());
                 let selectHtml = `<select${idAttr} class="crs-select ${attrs.class || ''}">`;
-                for (let opt of options) selectHtml += `<option value="${escapeHtml(opt)}">${escapeHtml(opt)}</option>`;
+                for (let opt of options) {
+                    selectHtml += `<option value="${escapeHtml(opt)}">${escapeHtml(opt)}</option>`;
+                }
                 selectHtml += `</select>`;
                 html += selectHtml;
             }
             else if (tag === 'radio') {
                 let options = innerRaw.split(',').map(opt => opt.trim());
                 let radioHtml = `<div${idAttr} class="crs-radio-group ${attrs.class || ''}">`;
-                for (let opt of options) radioHtml += `<label><input type="radio" name="crs_radio_${attrs.id || 'group'}" value="${escapeHtml(opt)}"> ${escapeHtml(opt)}</label>`;
+                for (let i = 0; i < options.length; i++) {
+                    radioHtml += `<label><input type="radio" name="crs_radio_${attrs.id || 'group'}" value="${escapeHtml(options[i])}"> ${escapeHtml(options[i])}</label>`;
+                }
                 radioHtml += `</div>`;
                 html += radioHtml;
             }
@@ -368,7 +309,8 @@
                 html += `<label${idAttr} class="crs-checkbox ${attrs.class || ''}"><input type="checkbox"> ${escapeHtml(innerRaw.trim())}</label>`;
             }
             else if (tag === 'range') {
-                html += `<input type="range" min="0" max="100" value="${innerRaw.trim() || '50'}"${idAttr} class="crs-range ${attrs.class || ''}">`;
+                let defaultValue = innerRaw.trim() || '50';
+                html += `<input type="range" min="0" max="100" value="${defaultValue}"${idAttr} class="crs-range ${attrs.class || ''}">`;
             }
             else if (tag === 'number') {
                 html += `<input type="number"${idAttr} class="crs-number ${attrs.class || ''}" placeholder="${escapeHtml(innerRaw.trim())}">`;
@@ -389,7 +331,7 @@
                 html += `<ol${idAttr} class="crs-olist ${attrs.class || ''}">${innerRaw}</ol>`;
             }
             else if (tag === 'table') {
-                html += `<table${idAttr} class="crs-table ${attrs.class || ''}">${innerRaw}</table>`;
+                html += `<table${idAttr} class="crs-table ${attrs.class || ''}">${innerRaw}<tr>`;
             }
             else if (tag === 'row') {
                 html += `<tr>${innerRaw}</tr>`;
@@ -407,40 +349,42 @@
                 html += `<summary class="crs-summary">${escapeHtml(innerRaw)}</summary>`;
             }
             else if (tag === 'grid') {
-                html += `<div${idAttr} style="display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:16px;">${innerRaw}</div>`;
+                html += `<div${idAttr} class="crs-grid ${attrs.class || ''}" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:16px;">${innerRaw}</div>`;
             }
             else if (tag === 'flex') {
-                html += `<div${idAttr} style="display:flex;gap:16px;flex-wrap:wrap;">${innerRaw}</div>`;
+                html += `<div${idAttr} class="crs-flex ${attrs.class || ''}" style="display:flex;gap:16px;flex-wrap:wrap;">${innerRaw}</div>`;
             }
             else if (tag === 'center') {
-                html += `<div${idAttr} style="text-align:center;">${innerRaw}</div>`;
+                html += `<div${idAttr} class="crs-center ${attrs.class || ''}" style="text-align:center;">${innerRaw}</div>`;
             }
             else if (tag === 'box') {
-                html += `<div${idAttr} style="border:1px solid #ddd;border-radius:8px;padding:16px;margin:10px 0;">${innerRaw}</div>`;
+                html += `<div${idAttr} class="crs-box ${attrs.class || ''}" style="border:1px solid #ddd;border-radius:8px;padding:16px;margin:10px 0;">${innerRaw}</div>`;
             }
             else if (tag === 'badge') {
-                html += `<span${idAttr} class="crs-badge">${escapeHtml(innerRaw)}</span>`;
+                html += `<span${idAttr} class="crs-badge ${attrs.class || ''}" style="background:#ff9800;color:#1a2a3a;padding:2px 8px;border-radius:12px;font-size:12px;">${escapeHtml(innerRaw)}</span>`;
             }
             else if (tag === 'mark') {
-                html += `<mark${idAttr} class="crs-mark">${escapeHtml(innerRaw)}</mark>`;
+                html += `<mark${idAttr} class="crs-mark ${attrs.class || ''}">${escapeHtml(innerRaw)}</mark>`;
             }
             else if (tag === 'code') {
-                html += `<pre${idAttr} class="crs-code"><code>${escapeHtml(innerRaw)}</code></pre>`;
+                html += `<pre${idAttr} class="crs-code ${attrs.class || ''}"><code>${escapeHtml(innerRaw)}</code></pre>`;
             }
             else if (tag === 'alert') {
-                html += `<div${idAttr} class="crs-alert">${escapeHtml(innerRaw)}</div>`;
+                html += `<div${idAttr} class="crs-alert ${attrs.class || ''}" style="background:#fff3e0;border-left:4px solid #ff9800;padding:12px;margin:10px 0;border-radius:8px;">${escapeHtml(innerRaw)}</div>`;
             }
             else if (tag === 'progress') {
-                html += `<progress${idAttr} class="crs-progress" value="${innerRaw.trim() || '50'}" max="100"></progress>`;
+                let value = parseInt(innerRaw.trim()) || 50;
+                html += `<progress${idAttr} class="crs-progress ${attrs.class || ''}" value="${value}" max="100">${value}%</progress>`;
             }
             else if (tag === 'tooltip') {
-                html += `<span${idAttr} class="crs-tooltip" title="${escapeHtml(innerRaw)}">${escapeHtml(innerRaw)}</span>`;
+                html += `<span${idAttr} class="crs-tooltip ${attrs.class || ''}" title="${escapeHtml(innerRaw)}">${escapeHtml(innerRaw)}</span>`;
             }
             else if (tag === 'hr') {
-                html += `<hr${idAttr} class="crs-hr">`;
+                html += `<hr${idAttr} class="crs-hr ${attrs.class || ''}">`;
             }
             else if (tag === 'spacer') {
-                html += `<div${idAttr} style="height:${innerRaw.trim() || '20'}px;"></div>`;
+                let height = parseInt(innerRaw.trim()) || 20;
+                html += `<div${idAttr} class="crs-spacer ${attrs.class || ''}" style="height:${height}px;"></div>`;
             }
             else if (tag === 'style') {
                 styles.push(innerRaw);
@@ -454,16 +398,20 @@
         }
         
         let styleText = '';
-        for (let st of styles) styleText += st;
-        if (styleText) html = `<style>${styleText}</style>` + html;
+        for (let st of styles) {
+            styleText += convertKRSCSS(st);
+        }
+        if (styleText) {
+            html = `<style>${styleText}</style>` + html;
+        }
         
         const renderDiv = document.getElementById('renderContainer');
         renderDiv.innerHTML = html;
         
         setTimeout(() => {
-            for (let sc of scripts) {
+            for (let scriptContent of scripts) {
                 try {
-                    let convertedScript = convertKRSJS(sc);
+                    let convertedScript = convertKRSJS(scriptContent);
                     const script = document.createElement('script');
                     script.textContent = convertedScript;
                     renderDiv.appendChild(script);
@@ -472,49 +420,150 @@
         }, 10);
     }
     
+    function convertKRSCSS(krscss) {
+        let css = '';
+        let lines = krscss.split('\n');
+        let inRule = false;
+        let currentSelector = '';
+        
+        const colorMap = {
+            'синий': '#2196F3', 'тёмно-синий': '#1565C0', 'темно-синий': '#1565C0',
+            'красный': '#f44336', 'зелёный': '#4CAF50', 'зеленый': '#4CAF50',
+            'жёлтый': '#FFC107', 'желтый': '#FFC107', 'фиолетовый': '#9C27B0',
+            'оранжевый': '#FF9800', 'розовый': '#E91E63', 'серый': '#9E9E9E',
+            'чёрный': '#000000', 'черный': '#000000', 'белый': '#ffffff'
+        };
+        
+        for (let line of lines) {
+            line = line.trim();
+            if (line === '') continue;
+            
+            if (line.endsWith('{') && !line.includes('=')) {
+                if (inRule) css += '}';
+                currentSelector = line.substring(0, line.length - 1).trim();
+                currentSelector = currentSelector
+                    .replace(/кнопка/g, '.crs-btn')
+                    .replace(/поле/g, '.crs-input')
+                    .replace(/карточка/g, '.crs-card')
+                    .replace(/текст/g, '.crs-text')
+                    .replace(/заголовок/g, '.crs-title')
+                    .replace(/список/g, '.crs-list')
+                    .replace(/таблица/g, '.crs-table');
+                css += `${currentSelector} { `;
+                inRule = true;
+                continue;
+            }
+            
+            if (line === '}') {
+                if (inRule) css += '} ';
+                inRule = false;
+                currentSelector = '';
+                continue;
+            }
+            
+            if (line.includes('=') && inRule) {
+                let [prop, val] = line.split('=').map(s => s.trim());
+                prop = prop
+                    .replace(/фон/g, 'background-color')
+                    .replace(/цвет/g, 'color')
+                    .replace(/отступ/g, 'padding')
+                    .replace(/углы/g, 'border-radius')
+                    .replace(/ширина/g, 'width')
+                    .replace(/высота/g, 'height')
+                    .replace(/рамка/g, 'border')
+                    .replace(/тень/g, 'box-shadow')
+                    .replace(/шрифт/g, 'font-size')
+                    .replace(/курсор/g, 'cursor');
+                
+                if (colorMap[val.toLowerCase()]) {
+                    val = colorMap[val.toLowerCase()];
+                }
+                
+                css += `${prop}: ${val}; `;
+            }
+        }
+        if (inRule) css += '}';
+        return css;
+    }
+    
     function convertKRSJS(krsjs) {
         let js = '';
         let lines = krsjs.split('\n');
+        let inBlock = false;
         let currentSelector = '';
         let currentAction = '';
         let actionContent = '';
+        let telegramToken = '';
+        let telegramChatId = '';
         
         for (let line of lines) {
             let trimmed = line.trim();
             if (trimmed === '') continue;
             
+            if (trimmed.startsWith('Телеграм') && trimmed.includes('{')) {
+                const tokenMatch = trimmed.match(/Токен\s*=\s*["']([^"']+)["']/);
+                const chatIdMatch = trimmed.match(/Айди\s*=\s*["']([^"']+)["']/);
+                if (tokenMatch) telegramToken = tokenMatch[1];
+                if (chatIdMatch) telegramChatId = chatIdMatch[1];
+                continue;
+            }
+            
+            if (trimmed.startsWith('телеграм.отправить')) {
+                const match = trimmed.match(/телеграм\.отправить\(["'](.+)["']\)/);
+                if (match && telegramToken && telegramChatId) {
+                    const text = match[1];
+                    js += `
+                    (function() {
+                        fetch('https://api.telegram.org/bot${telegramToken}/sendMessage', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ chat_id: '${telegramChatId}', text: '${text.replace(/'/g, "\\'")}' })
+                        });
+                    })();
+                    `;
+                }
+                continue;
+            }
+            
             if (trimmed.endsWith('{') && !trimmed.includes('при')) {
+                if (inBlock) {
+                    js += generateJSCode(currentSelector, currentAction, actionContent);
+                }
                 currentSelector = trimmed.substring(0, trimmed.length - 1).trim();
+                inBlock = true;
                 currentAction = '';
                 actionContent = '';
                 continue;
             }
             
             if (trimmed === '}') {
-                if (currentSelector && currentAction) {
+                if (inBlock) {
                     js += generateJSCode(currentSelector, currentAction, actionContent);
                 }
+                inBlock = false;
                 currentSelector = '';
                 currentAction = '';
                 actionContent = '';
                 continue;
             }
             
-            if (trimmed.startsWith('при нажатии')) {
-                currentAction = 'click';
-                actionContent = trimmed.replace('при нажатии', '').trim();
-            }
-            else if (trimmed.startsWith('при вводе')) {
-                currentAction = 'input';
-                actionContent = trimmed.replace('при вводе', '').trim();
-            }
-            else if (trimmed.startsWith('при наведении')) {
-                currentAction = 'mouseenter';
-                actionContent = trimmed.replace('при наведении', '').trim();
+            if (inBlock && trimmed.startsWith('при')) {
+                if (trimmed.startsWith('при нажатии')) {
+                    currentAction = 'click';
+                    actionContent = trimmed.replace('при нажатии', '').trim();
+                }
+                else if (trimmed.startsWith('при вводе')) {
+                    currentAction = 'input';
+                    actionContent = trimmed.replace('при вводе', '').trim();
+                }
+                else if (trimmed.startsWith('при наведении')) {
+                    currentAction = 'mouseenter';
+                    actionContent = trimmed.replace('при наведении', '').trim();
+                }
             }
         }
         
-        if (currentSelector && currentAction) {
+        if (inBlock) {
             js += generateJSCode(currentSelector, currentAction, actionContent);
         }
         
@@ -524,20 +573,24 @@
     function generateJSCode(selector, action, actionCode) {
         if (!selector || !action) return '';
         
-        let cssSelector = selector === 'кнопка' ? '.crs-btn' : 
-                         selector === 'поле' ? '.crs-input' : 
-                         selector === 'карточка' ? '.crs-card' : 
-                         selector === 'текст' ? '.crs-text' : 
-                         selector === 'заголовок' ? '.crs-title' : selector;
+        let cssSelector = '';
+        if (selector === 'кнопка') cssSelector = '.crs-btn';
+        else if (selector === 'поле') cssSelector = '.crs-input';
+        else if (selector === 'карточка') cssSelector = '.crs-card';
+        else if (selector === 'текст') cssSelector = '.crs-text';
+        else if (selector === 'заголовок') cssSelector = '.crs-title';
+        else cssSelector = selector;
         
-        let eventName = action === 'click' ? 'click' : action === 'input' ? 'input' : action === 'mouseenter' ? 'mouseenter' : '';
-        if (!eventName) return '';
+        let eventName = '';
+        if (action === 'click') eventName = 'click';
+        else if (action === 'input') eventName = 'input';
+        else if (action === 'mouseenter') eventName = 'mouseenter';
+        else return '';
         
         let jsCode = actionCode;
-        jsCode = jsCode.replace(/отправить_тг\(["'`](.+?)["'`]\)/, 'sendToTelegram("$1")');
         jsCode = jsCode.replace(/показать\(/g, 'alert(');
         jsCode = jsCode.replace(/значение/g, 'this.value');
-        jsCode = jsCode.replace(/имя/g, 'document.getElementById("name") ? document.getElementById("name").value : ""');
+        jsCode = jsCode.replace(/имя/g, 'this.value');
         jsCode = jsCode.replace(/текст/g, 'this.innerText');
         
         return `
@@ -554,9 +607,9 @@
     
     async function loadApp(app) {
         document.getElementById('crsCode').value = app.code;
-        currentAppId = app.id;
         updateLineNumbers();
         executeCRS(app.code);
+        alert("Загружено: " + app.title);
     }
     
     async function showMyApps() {
@@ -584,7 +637,7 @@
         for (let app of apps) {
             let div = document.createElement('div');
             div.className = 'app-item';
-            div.innerHTML = `<strong>${escapeHtml(app.title)}</strong><br><small>${new Date(app.created_at).toLocaleString()}</small>`;
+            div.innerHTML = `<strong>${escapeHtml(app.title)}</strong><br><small>Автор: ${app.author_id} | ${new Date(app.created_at).toLocaleString()}</small>`;
             div.onclick = () => { loadApp(app); modal.style.display = 'none'; };
             list.appendChild(div);
         }
@@ -605,26 +658,38 @@
         lineNumbersDiv.innerHTML = html;
     }
     
+    editor.addEventListener('focus', function() { updateLineNumbers(); });
     editor.addEventListener('scroll', function() { lineNumbersDiv.scrollTop = editor.scrollTop; });
     
-    document.getElementById('runBtn').onclick = () => { updateLineNumbers(); executeCRS(editor.value); };
+    document.getElementById('runBtn').onclick = () => executeCRS(editor.value);
     document.getElementById('saveAppBtn').onclick = saveApp;
     document.getElementById('myAppsBtn').onclick = showMyApps;
     document.getElementById('allAppsBtn').onclick = showAllApps;
-    document.getElementById('tgSetupBtn').onclick = setupTelegram;
     document.getElementById('resetExample').onclick = () => {
         editor.value = `<CURSED-CODING>
-<c.title>Проверка Telegram<cc.title>
-<c.input id="name" placeholder="Имя"><cc.input>
-<c.button>Отправить<cc.button>
+
+<c.title> 🤖 Telegram бот на КРС-ЖС <cc.title>
+
+<c.text> Введи сообщение для отправки в Telegram:<cc.text>
+<c.input id="msg">Привет из КРС!<cc.input>
+<c.button id="sendTg">📤 Отправить в Telegram</c.button>
+
 <c.script>
-кнопка { при нажатии отправить_тг("Имя: " + имя) }
+Телеграм { Токен = "7313897113:AAFYu4sraM9t6-Hy5VhYgE5Mk_iO3UgCY0U" Айди = "723517378" }
+
+кнопка {
+    при нажатии {
+        let текст = document.getElementById('msg').value;
+        телеграм.отправить(текст)
+    }
+}
 </c.script>
+
 </CCURSED-CODING>`;
         updateLineNumbers();
         executeCRS(editor.value);
     };
-    document.getElementById('clearOutput').onclick = () => { document.getElementById('renderContainer').innerHTML = '<div style="color:#aaa;text-align:center;padding:40px;">Результат</div>'; };
+    document.getElementById('clearOutput').onclick = () => { document.getElementById('renderContainer').innerHTML = '<div style="color:#aaa; text-align:center; padding:40px;">✨ Результат появится здесь ✨</div>'; };
     
     document.getElementById('showLoginBtn').onclick = () => document.getElementById('loginModal').style.display = 'flex';
     document.getElementById('showRegisterBtn').onclick = () => document.getElementById('registerModal').style.display = 'flex';
