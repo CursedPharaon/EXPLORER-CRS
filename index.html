@@ -1,41 +1,224 @@
-<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>KRS App</title>
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KRS Compiler</title>
     <style>
         * { margin:0; padding:0; box-sizing:border-box; }
-        body { font-family:Arial,sans-serif; background:#1a1a2e; color:#fff; padding:20px; }
-        .crs-btn { background:#7c3aed; color:#fff; padding:12px 24px; border:none; border-radius:12px; font-size:16px; cursor:pointer; margin:5px; }
-        .crs-input { padding:12px; border-radius:8px; border:1px solid rgba(255,255,255,0.2); background:rgba(255,255,255,0.05); color:#fff; width:100%; margin:5px 0; font-size:16px; }
-        .crs-card { background:rgba(255,255,255,0.05); border-radius:20px; padding:25px; margin:10px 0; }
-        .crs-title { font-size:32px; font-weight:bold; color:#a78bfa; margin:10px 0; }
-        .crs-text { font-size:16px; margin:10px 0; color:rgba(255,255,255,0.8); }
-        .crs-badge { background:#7c3aed; padding:4px 10px; border-radius:20px; font-size:12px; display:inline-block; }
-        .crs-alert { background:rgba(255,193,7,0.1); border-left:4px solid #ffc107; padding:12px; border-radius:8px; margin:10px 0; color:#ffc107; }
-        .crs-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:15px; }
-        .crs-box { border:1px solid rgba(255,255,255,0.2); border-radius:12px; padding:20px; margin:10px 0; }
+        
+        body {
+            font-family: 'Courier New', monospace;
+            background: #0a0a1a;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .toolbar {
+            background: #1a1a2e;
+            padding: 12px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #7c3aed;
+        }
+        
+        .toolbar h1 {
+            font-size: 18px;
+            background: linear-gradient(135deg, #a78bfa, #7c3aed);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .run-btn {
+            background: linear-gradient(135deg, #7c3aed, #4f46e5);
+            color: #fff;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .run-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 20px rgba(124, 58, 237, 0.5);
+        }
+        
+        .run-btn:active {
+            transform: scale(0.95);
+        }
+        
+        textarea {
+            flex: 1;
+            background: #0f0c29;
+            color: #c4b5fd;
+            border: none;
+            padding: 20px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            resize: none;
+            outline: none;
+        }
+        
+        textarea::placeholder {
+            color: rgba(167, 139, 250, 0.3);
+        }
+        
+        /* Окно результата */
+        .preview-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: #1a1a2e;
+            z-index: 9999;
+            flex-direction: column;
+        }
+        
+        .preview-overlay.active {
+            display: flex;
+        }
+        
+        .preview-header {
+            padding: 10px 20px;
+            display: flex;
+            justify-content: flex-end;
+            background: #0f0c29;
+        }
+        
+        .close-btn {
+            background: rgba(255,255,255,0.1);
+            color: #fff;
+            border: none;
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            font-size: 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+        
+        .close-btn:hover {
+            background: #ff4757;
+            transform: rotate(90deg);
+        }
+        
+        iframe {
+            flex: 1;
+            border: none;
+            background: #1a1a2e;
+        }
     </style>
-    </head><body>
+</head>
+<body>
 
-<h1 class="crs-title">Привет, мир!</h1>
-
-<div class="crs-box">
-<p class="crs-text">Это сайт на языке КРС</p>
-<button class="crs-btn">Нажми меня</button>
+<div class="toolbar">
+    <h1>🔮 KRS COMPILER</h1>
+    <button class="run-btn" onclick="compile()">▶ ЗАПУСТИТЬ</button>
 </div>
 
-<div class="crs-grid">
-<div class="crs-card">
-<h1 class="crs-title">Карточка 1</h1>
-<p class="crs-text">Описание товара</p>
-<span class="crs-badge">Новинка</span>
-</div>
-<div class="crs-card">
-<h1 class="crs-title">Карточка 2</h1>
-<button class="crs-btn">Купить</button>
-</div>
+<textarea id="code" placeholder="Пиши код на КРС здесь...
+
+Пример:
+<CURSED-CODING>
+<c.title>Привет!<c.title>
+<c.button>Нажми<c.button>
+</CCURSED-CODING>"><CURSED-CODING>
+
+<c.title>🌟 Мой сайт</c.title>
+
+<c.box>
+<c.text>Привет! Это сайт на языке КРС.</c.text>
+<c.button>Нажми меня</c.button>
+</c.box>
+
+<c.grid>
+<c.card>
+<c.title>Услуга 1</c.title>
+<c.text>Описание услуги</c.text>
+<c.badge>Хит</c.badge>
+</c.card>
+<c.card>
+<c.title>Услуга 2</c.title>
+<c.text>Другое описание</c.text>
+<c.button>Заказать</c.button>
+</c.card>
+</c.grid>
+
+<c.input>Введи имя</c.input>
+<c.alert>⚠️ Это важное уведомление!</c.alert>
+
+</CCURSED-CODING></textarea>
+
+<div class="preview-overlay" id="previewOverlay">
+    <div class="preview-header">
+        <button class="close-btn" onclick="closePreview()">✕</button>
+    </div>
+    <iframe id="previewFrame"></iframe>
 </div>
 
-<input class="crs-input" placeholder="Введи имя">
-<div class="crs-alert">Важное сообщение!</div>
+<script>
+function compile() {
+    var code = document.getElementById('code').value;
+    
+    var css = `
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { font-family:Arial,sans-serif; background:#1a1a2e; color:#fff; padding:20px; }
+        .crs-btn { background:linear-gradient(135deg,#7c3aed,#4f46e5); color:#fff; padding:12px 24px; border:none; border-radius:12px; font-size:16px; cursor:pointer; margin:5px; }
+        .crs-btn:hover { transform:scale(1.03); box-shadow:0 10px 25px rgba(124,58,237,0.4); }
+        .crs-input { padding:12px; border-radius:8px; border:1px solid rgba(255,255,255,0.2); background:rgba(255,255,255,0.05); color:#fff; width:100%; margin:5px 0; font-size:16px; }
+        .crs-card { background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:20px; padding:25px; margin:10px 0; }
+        .crs-title { font-size:28px; font-weight:800; background:linear-gradient(135deg,#a78bfa,#7c3aed); -webkit-background-clip:text; -webkit-text-fill-color:transparent; margin:10px 0; }
+        .crs-text { font-size:16px; line-height:1.6; margin:10px 0; color:rgba(255,255,255,0.8); }
+        .crs-badge { background:#7c3aed; color:#fff; padding:4px 12px; border-radius:20px; font-size:12px; display:inline-block; font-weight:bold; }
+        .crs-alert { background:rgba(255,193,7,0.1); border-left:4px solid #ffc107; padding:15px; border-radius:8px; margin:10px 0; color:#ffc107; }
+        .crs-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:15px; }
+        .crs-box { border:1px solid rgba(255,255,255,0.2); border-radius:12px; padding:20px; margin:10px 0; }
+        .crs-link { color:#45b7d1; text-decoration:underline; }
+        .crs-image { max-width:100%; border-radius:12px; margin:10px 0; }
+        .crs-list { padding-left:20px; margin:10px 0; }
+        .crs-list li { color:rgba(255,255,255,0.8); padding:3px 0; }
+        .crs-code { background:#0f0c29; padding:15px; border-radius:8px; font-family:monospace; color:#c4b5fd; margin:10px 0; }
+    `;
+    
+    var html = code
+        .replace(/<CURSED-CODING>/gi, '').replace(/<\/CCURSED-CODING>/gi, '')
+        .replace(/<c\.title>/gi, '<h1 class="crs-title">').replace(/<\/c\.title>/gi, '</h1>')
+        .replace(/<c\.text>/gi, '<p class="crs-text">').replace(/<\/c\.text>/gi, '</p>')
+        .replace(/<c\.button>/gi, '<button class="crs-btn">').replace(/<\/c\.button>/gi, '</button>')
+        .replace(/<c\.input>/gi, '<input class="crs-input" placeholder="').replace(/<\/c\.input>/gi, '">')
+        .replace(/<c\.card>/gi, '<div class="crs-card">').replace(/<\/c\.card>/gi, '</div>')
+        .replace(/<c\.box>/gi, '<div class="crs-box">').replace(/<\/c\.box>/gi, '</div>')
+        .replace(/<c\.grid>/gi, '<div class="crs-grid">').replace(/<\/c\.grid>/gi, '</div>')
+        .replace(/<c\.badge>/gi, '<span class="crs-badge">').replace(/<\/c\.badge>/gi, '</span>')
+        .replace(/<c\.alert>/gi, '<div class="crs-alert">').replace(/<\/c\.alert>/gi, '</div>')
+        .replace(/<c\.image>/gi, '<img class="crs-image" src="').replace(/<\/c\.image>/gi, '">')
+        .replace(/<c\.link>/gi, '<a class="crs-link" href="').replace(/<\/c\.link>/gi, '">Ссылка</a>')
+        .replace(/<c\.list>/gi, '<ul class="crs-list">').replace(/<\/c\.list>/gi, '</ul>')
+        .replace(/<c\.item>/gi, '<li>').replace(/<\/c\.item>/gi, '</li>')
+        .replace(/<c\.code>/gi, '<pre class="crs-code"><code>').replace(/<\/c\.code>/gi, '</code></pre>')
+        .replace(/<c\.spacer>/gi, '<div style="height:').replace(/<\/c\.spacer>/gi, 'px;"></div>')
+        .replace(/<c\.hr>/gi, '<hr style="border-color:rgba(255,255,255,0.1);margin:15px 0;">')
+        .replace(/<\/c\.hr>/gi, '');
+    
+    var full = '<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><style>' + css + '</style></head><body>' + html + '</body></html>';
+    
+    document.getElementById('previewFrame').srcdoc = full;
+    document.getElementById('previewOverlay').classList.add('active');
+}
 
-<div style="height:20px;"></div>
+function closePreview() {
+    document.getElementById('previewOverlay').classList.remove('active');
+}
+</script>
 
-</body></html>
+</body>
+</html>
