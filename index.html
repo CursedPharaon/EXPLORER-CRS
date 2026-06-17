@@ -3,69 +3,218 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KRS Compiler</title>
+    <title>KRS IDE</title>
     <style>
         * { margin:0; padding:0; box-sizing:border-box; }
-        body { font-family:'Courier New',monospace; background:#0a0a1a; height:100vh; display:flex; flex-direction:column; }
-        .toolbar { background:#1a1a2e; padding:12px 20px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #7c3aed; }
-        .toolbar h1 { font-size:18px; background:linear-gradient(135deg,#a78bfa,#7c3aed); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
-        .run-btn { background:#7c3aed; color:#fff; border:none; padding:12px 30px; border-radius:25px; font-size:16px; font-weight:bold; cursor:pointer; }
-        textarea { flex:1; background:#0f0c29; color:#c4b5fd; border:none; padding:20px; font-family:'Courier New',monospace; font-size:14px; line-height:1.6; resize:none; outline:none; }
-        .preview-overlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#1a1a2e; z-index:9999; flex-direction:column; }
-        .preview-overlay.active { display:flex; }
-        .preview-header { padding:10px 20px; display:flex; justify-content:flex-end; background:#0f0c29; }
-        .close-btn { background:rgba(255,255,255,0.1); color:#fff; border:none; width:35px; height:35px; border-radius:50%; font-size:20px; cursor:pointer; }
-        iframe { flex:1; border:none; background:#fff; }
+        body { font-family:monospace; background:#1e1e1e; color:#d4d4d4; height:100vh; display:flex; flex-direction:column; }
+        
+        .menubar { background:#333; padding:5px 10px; display:flex; gap:5px; align-items:center; }
+        .menubar button { background:#444; color:#ccc; border:none; padding:5px 12px; cursor:pointer; font-size:13px; }
+        .menubar button:hover { background:#555; }
+        .menubar span { color:#888; margin:0 10px; font-size:13px; }
+        
+        .tabs { background:#252525; display:flex; padding:0 10px; }
+        .tab { padding:6px 15px; color:#999; cursor:pointer; font-size:13px; border-bottom:2px solid transparent; }
+        .tab.active { color:#fff; border-bottom:2px solid #007acc; }
+        
+        .editor-area { flex:1; display:flex; }
+        
+        .sidebar { background:#252525; width:40px; display:flex; flex-direction:column; align-items:center; padding-top:10px; gap:10px; }
+        .sidebar button { background:none; border:none; color:#888; font-size:18px; cursor:pointer; }
+        .sidebar button:hover { color:#fff; }
+        
+        .main-editor { flex:1; display:flex; }
+        .line-numbers { background:#1e1e1e; color:#555; padding:15px 5px; text-align:right; font-size:14px; line-height:1.5; width:35px; overflow:hidden; }
+        textarea { flex:1; background:#1e1e1e; color:#d4d4d4; border:none; padding:15px 5px; font-family:monospace; font-size:14px; line-height:1.5; resize:none; outline:none; }
+        
+        .run-btn { position:fixed; bottom:20px; right:20px; width:55px; height:55px; border-radius:50%; background:#007acc; color:#fff; border:none; font-size:24px; cursor:pointer; box-shadow:0 4px 15px rgba(0,122,204,0.5); }
+        .run-btn:hover { background:#0098ff; }
+        
+        .preview { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#fff; z-index:9999; flex-direction:column; }
+        .preview.active { display:flex; }
+        .preview-bar { background:#333; padding:8px 15px; display:flex; justify-content:space-between; align-items:center; }
+        .preview-bar button { background:#e74c3c; color:#fff; border:none; padding:5px 15px; cursor:pointer; font-size:16px; border-radius:3px; }
+        iframe { flex:1; border:none; }
+        
+        .file-list { display:none; position:fixed; top:30px; left:50px; background:#333; padding:10px; border-radius:5px; z-index:100; min-width:200px; }
+        .file-list.active { display:block; }
+        .file-item { padding:5px 10px; cursor:pointer; color:#ccc; font-size:13px; }
+        .file-item:hover { background:#444; }
     </style>
 </head>
 <body>
 
-<div class="toolbar">
-    <h1>🔮 KRS COMPILER</h1>
-    <button class="run-btn" onclick="compile()">▶ ЗАПУСТИТЬ</button>
+<div class="menubar">
+    <button onclick="newFile()">📄 Новый</button>
+    <button onclick="toggleFiles()">📁 Файлы</button>
+    <button onclick="save()">💾 Сохранить</button>
+    <button onclick="convertToHtml()">🌐 Конверт в HTML</button>
+    <span id="filename">untitled.crs</span>
 </div>
 
-<textarea id="code"><CURSED-CODING>
+<div class="tabs">
+    <div class="tab active" id="tab1">untitled.crs</div>
+</div>
 
+<div class="editor-area">
+    <div class="sidebar">
+        <button title="Файлы" onclick="toggleFiles()">📁</button>
+        <button title="Новый" onclick="newFile()">📄</button>
+        <button title="Сохранить" onclick="save()">💾</button>
+        <button title="Конверт в HTML" onclick="convertToHtml()">🌐</button>
+    </div>
+    <div class="main-editor">
+        <div class="line-numbers" id="lineNumbers">1</div>
+        <textarea id="editor" placeholder="Пиши код на КРС..."><CURSED-CODING>
 <c.title>Привет!</c.title>
-<c.text>Мой сайт</c.text>
+<c.text>Это КРС</c.text>
 <c.button>Нажми</c.button>
-
 </CCURSED-CODING></textarea>
+    </div>
+</div>
 
-<div class="preview-overlay" id="previewOverlay">
-    <div class="preview-header">
-        <button class="close-btn" onclick="closePreview()">✕</button>
+<button class="run-btn" onclick="run()">▶</button>
+
+<div class="file-list" id="fileList"></div>
+
+<div class="preview" id="preview">
+    <div class="preview-bar">
+        <button onclick="downloadHtml()" style="background:#2ecc71;">📥 Скачать HTML</button>
+        <button onclick="closePreview()">✕</button>
     </div>
     <iframe id="previewFrame"></iframe>
 </div>
 
 <script>
-function compile() {
-    var code = document.getElementById('code').value;
+var currentFile = 'untitled.crs';
+var files = JSON.parse(localStorage.getItem('krs_files') || '{}');
+var lastHtml = '';
+
+document.getElementById('editor').addEventListener('input', updateLines);
+document.getElementById('editor').addEventListener('scroll', syncScroll);
+
+function updateLines() {
+    var lines = document.getElementById('editor').value.split('\n');
+    var nums = '';
+    for (var i=1; i<=lines.length; i++) nums += i + '\n';
+    document.getElementById('lineNumbers').textContent = nums;
+}
+
+function syncScroll() {
+    document.getElementById('lineNumbers').scrollTop = document.getElementById('editor').scrollTop;
+}
+
+function compile(code) {
+    code = code.replace(/<CURSED-CODING>/gi,'').replace(/<\/CCURSED-CODING>/gi,'');
+    code = code.replace(/<c\.title>(.*?)<\/c\.title>/gi,'<h1 style="color:#7c3aed;">$1</h1>');
+    code = code.replace(/<c\.text>(.*?)<\/c\.text>/gi,'<p>$1</p>');
+    code = code.replace(/<c\.button>(.*?)<\/c\.button>/gi,'<button style="background:#7c3aed;color:#fff;padding:10px 20px;border:none;border-radius:8px;">$1</button>');
+    code = code.replace(/<c\.input>(.*?)<\/c\.input>/gi,'<input placeholder="$1" style="padding:10px;border:1px solid #ccc;border-radius:8px;width:100%;">');
+    code = code.replace(/<c\.card>(.*?)<\/c\.card>/gi,'<div style="background:#f5f5f5;padding:20px;border-radius:15px;margin:10px 0;">$1</div>');
+    code = code.replace(/<c\.box>(.*?)<\/c\.box>/gi,'<div style="border:1px solid #ddd;padding:20px;border-radius:12px;margin:10px 0;">$1</div>');
+    code = code.replace(/<c\.badge>(.*?)<\/c\.badge>/gi,'<span style="background:#7c3aed;color:#fff;padding:4px 12px;border-radius:20px;font-size:12px;">$1</span>');
+    code = code.replace(/<c\.alert>(.*?)<\/c\.alert>/gi,'<div style="background:#fff3cd;border-left:4px solid #ffc107;padding:15px;margin:10px 0;">$1</div>');
+    code = code.replace(/<c\.spacer>(\d+)<\/c\.spacer>/gi,'<div style="height:$1px;"></div>');
+    code = code.replace(/<c\.grid>(.*?)<\/c\.grid>/gi,'<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:15px;">$1</div>');
     
-    code = code.replace(/<CURSED-CODING>/gi, '').replace(/<\/CCURSED-CODING>/gi, '');
+    return '<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>KRS App</title></head><body style="font-family:Arial;padding:20px;">' + code + '</body></html>';
+}
+
+function save() {
+    var code = document.getElementById('editor').value;
+    var name = prompt('Имя файла:', currentFile);
+    if (!name) return;
+    if (!name.endsWith('.crs')) name += '.crs';
     
-    code = code.replace(/<c\.title>(.*?)<\/c\.title>/gi, '<h1 style="font-size:28px;color:#a78bfa;margin:10px 0;">$1</h1>');
-    code = code.replace(/<c\.text>(.*?)<\/c\.text>/gi, '<p style="font-size:16px;color:#333;margin:10px 0;">$1</p>');
-    code = code.replace(/<c\.button>(.*?)<\/c\.button>/gi, '<button style="background:#7c3aed;color:#fff;padding:12px 24px;border:none;border-radius:12px;font-size:16px;cursor:pointer;margin:5px;">$1</button>');
-    code = code.replace(/<c\.input>(.*?)<\/c\.input>/gi, '<input style="padding:12px;border-radius:8px;border:1px solid #ccc;width:100%;margin:5px 0;font-size:16px;" placeholder="$1">');
-    code = code.replace(/<c\.card>(.*?)<\/c\.card>/gi, '<div style="background:#f5f5f5;border-radius:20px;padding:25px;margin:10px 0;">$1</div>');
-    code = code.replace(/<c\.box>(.*?)<\/c\.box>/gi, '<div style="border:1px solid #ddd;border-radius:12px;padding:20px;margin:10px 0;">$1</div>');
-    code = code.replace(/<c\.grid>(.*?)<\/c\.grid>/gi, '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:15px;">$1</div>');
-    code = code.replace(/<c\.badge>(.*?)<\/c\.badge>/gi, '<span style="background:#7c3aed;color:#fff;padding:4px 12px;border-radius:20px;font-size:12px;">$1</span>');
-    code = code.replace(/<c\.alert>(.*?)<\/c\.alert>/gi, '<div style="background:#fff3cd;border-left:4px solid #ffc107;padding:15px;border-radius:8px;margin:10px 0;">$1</div>');
-    code = code.replace(/<c\.spacer>(\d+)<\/c\.spacer>/gi, '<div style="height:$1px;"></div>');
+    files[name] = code;
+    localStorage.setItem('krs_files', JSON.stringify(files));
+    currentFile = name;
+    document.getElementById('filename').textContent = name;
+    document.getElementById('tab1').textContent = name;
+}
+
+function newFile() {
+    if (document.getElementById('editor').value && !confirm('Сохранить текущий?')) return;
+    document.getElementById('editor').value = '<CURSED-CODING>\n\n</CCURSED-CODING>';
+    currentFile = 'untitled.crs';
+    document.getElementById('filename').textContent = 'untitled.crs';
+    document.getElementById('tab1').textContent = 'untitled.crs';
+    updateLines();
+}
+
+function toggleFiles() {
+    var list = document.getElementById('fileList');
+    if (list.classList.contains('active')) {
+        list.classList.remove('active');
+        return;
+    }
     
-    var html = '<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body style="font-family:Arial;padding:20px;">' + code + '</body></html>';
-    
-    document.getElementById('previewFrame').srcdoc = html;
-    document.getElementById('previewOverlay').classList.add('active');
+    var html = '';
+    var keys = Object.keys(files);
+    if (keys.length === 0) {
+        html = '<div class="file-item" style="color:#888;">Нет файлов</div>';
+    } else {
+        keys.forEach(function(name) {
+            html += '<div class="file-item" onclick="loadFile(\'' + name + '\')">📄 ' + name + '</div>';
+            html += '<div class="file-item" onclick="deleteFile(\'' + name + '\')" style="color:#e74c3c;">🗑 Удалить</div>';
+        });
+    }
+    list.innerHTML = html;
+    list.classList.add('active');
+}
+
+function loadFile(name) {
+    document.getElementById('editor').value = files[name];
+    currentFile = name;
+    document.getElementById('filename').textContent = name;
+    document.getElementById('tab1').textContent = name;
+    document.getElementById('fileList').classList.remove('active');
+    updateLines();
+}
+
+function deleteFile(name) {
+    if (confirm('Удалить ' + name + '?')) {
+        delete files[name];
+        localStorage.setItem('krs_files', JSON.stringify(files));
+        toggleFiles();
+    }
+}
+
+function run() {
+    var code = document.getElementById('editor').value;
+    lastHtml = compile(code);
+    document.getElementById('previewFrame').srcdoc = lastHtml;
+    document.getElementById('preview').classList.add('active');
 }
 
 function closePreview() {
-    document.getElementById('previewOverlay').classList.remove('active');
+    document.getElementById('preview').classList.remove('active');
 }
+
+function convertToHtml() {
+    var code = document.getElementById('editor').value;
+    lastHtml = compile(code);
+    
+    var blob = new Blob([lastHtml], {type: 'text/html'});
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = currentFile.replace('.crs', '.html');
+    a.click();
+    URL.revokeObjectURL(url);
+}
+
+function downloadHtml() {
+    var blob = new Blob([lastHtml], {type: 'text/html'});
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = currentFile.replace('.crs', '.html');
+    a.click();
+    URL.revokeObjectURL(url);
+}
+
+updateLines();
 </script>
 
 </body>
