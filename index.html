@@ -9,15 +9,13 @@
         body { font-family:'Courier New',monospace; background:#0a0a1a; height:100vh; display:flex; flex-direction:column; }
         .toolbar { background:#1a1a2e; padding:12px 20px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #7c3aed; }
         .toolbar h1 { font-size:18px; background:linear-gradient(135deg,#a78bfa,#7c3aed); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
-        .run-btn { background:linear-gradient(135deg,#7c3aed,#4f46e5); color:#fff; border:none; padding:12px 30px; border-radius:25px; font-size:16px; font-weight:bold; cursor:pointer; }
+        .run-btn { background:#7c3aed; color:#fff; border:none; padding:12px 30px; border-radius:25px; font-size:16px; font-weight:bold; cursor:pointer; }
         textarea { flex:1; background:#0f0c29; color:#c4b5fd; border:none; padding:20px; font-family:'Courier New',monospace; font-size:14px; line-height:1.6; resize:none; outline:none; }
-        textarea::placeholder { color:rgba(167,139,250,0.3); }
         .preview-overlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#1a1a2e; z-index:9999; flex-direction:column; }
         .preview-overlay.active { display:flex; }
         .preview-header { padding:10px 20px; display:flex; justify-content:flex-end; background:#0f0c29; }
-        .close-btn { background:rgba(255,255,255,0.1); color:#fff; border:none; width:35px; height:35px; border-radius:50%; font-size:20px; cursor:pointer; display:flex; align-items:center; justify-content:center; }
-        .close-btn:hover { background:#ff4757; }
-        iframe { flex:1; border:none; background:#1a1a2e; }
+        .close-btn { background:rgba(255,255,255,0.1); color:#fff; border:none; width:35px; height:35px; border-radius:50%; font-size:20px; cursor:pointer; }
+        iframe { flex:1; border:none; background:#fff; }
     </style>
 </head>
 <body>
@@ -27,43 +25,11 @@
     <button class="run-btn" onclick="compile()">▶ ЗАПУСТИТЬ</button>
 </div>
 
-<textarea id="code" placeholder="Пиши код на КРС здесь..."><CURSED-CODING>
+<textarea id="code"><CURSED-CODING>
 
-<c.style>
-#myBtn {
-  фон = синий
-  цвет = белый
-  углы = 30px
-  отступ = 15px 30px
-}
-.myCard {
-  фон = фиолетовый
-  углы = 20px
-  тень = 0 5px 20px чёрный
-}
-<c.style>
-
-<c.title>🌟 Сайт с ID и классами</c.title>
-
-<c.grid>
-<c.card id="card1" class="myCard">
-<c.title>Карточка 1</c.title>
-<c.text>С классом myCard</c.text>
-<c.button id="myBtn">Синяя кнопка</c.button>
-</c.card>
-
-<c.card id="card2">
-<c.title>Карточка 2</c.title>
-<c.text>Без класса</c.text>
-<c.button>Обычная</c.button>
-</c.card>
-</c.grid>
-
-<c.input id="nameInput" placeholder="Введи имя"></c.input>
-
-<c.script>
-при_нажатии показать("Привет, " + имя)
-</c.script>
+<c.title>Привет!</c.title>
+<c.text>Мой сайт</c.text>
+<c.button>Нажми</c.button>
 
 </CCURSED-CODING></textarea>
 
@@ -78,112 +44,22 @@
 function compile() {
     var code = document.getElementById('code').value;
     
-    var baseCSS = `
-        * { margin:0; padding:0; box-sizing:border-box; }
-        body { font-family:Arial,sans-serif; background:#1a1a2e; color:#fff; padding:20px; }
-        .crs-btn { background:#7c3aed; color:#fff; padding:12px 24px; border:none; border-radius:12px; font-size:16px; cursor:pointer; margin:5px; }
-        .crs-btn:hover { transform:scale(1.03); }
-        .crs-input { padding:12px; border-radius:8px; border:1px solid rgba(255,255,255,0.2); background:rgba(255,255,255,0.05); color:#fff; width:100%; margin:5px 0; font-size:16px; }
-        .crs-card { background:rgba(255,255,255,0.05); border-radius:20px; padding:25px; margin:10px 0; }
-        .crs-title { font-size:28px; font-weight:800; background:linear-gradient(135deg,#a78bfa,#7c3aed); -webkit-background-clip:text; -webkit-text-fill-color:transparent; margin:10px 0; }
-        .crs-text { font-size:16px; line-height:1.6; margin:10px 0; color:rgba(255,255,255,0.8); }
-        .crs-badge { background:#7c3aed; padding:4px 12px; border-radius:20px; font-size:12px; display:inline-block; }
-        .crs-alert { background:rgba(255,193,7,0.1); border-left:4px solid #ffc107; padding:15px; border-radius:8px; margin:10px 0; color:#ffc107; }
-        .crs-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:15px; }
-        .crs-box { border:1px solid rgba(255,255,255,0.2); border-radius:12px; padding:20px; margin:10px 0; }
-        .crs-link { color:#45b7d1; }
-        .crs-image { max-width:100%; border-radius:12px; margin:10px 0; }
-        .crs-list { padding-left:20px; }
-        .crs-code { background:#0f0c29; padding:15px; border-radius:8px; font-family:monospace; }
-    `;
-    
-    var customCSS = '';
-    var scripts = '';
-    
-    // Извлекаем стили
-    code = code.replace(/<c\.style>([\s\S]*?)<\/c\.style>/gi, function(match, content) {
-        var css = '';
-        var colors = {'синий':'#2196F3','красный':'#f44336','зелёный':'#4CAF50','фиолетовый':'#7c3aed','белый':'#fff','чёрный':'#000','жёлтый':'#ffc107','оранжевый':'#ff9800','розовый':'#e91e63','серый':'#9e9e9e'};
-        
-        // Парсим блоки: #id { ... } или .class { ... }
-        var blocks = content.match(/([#.][\w-]+)\s*\{([^}]+)\}/g);
-        if (blocks) {
-            blocks.forEach(function(block) {
-                var sel = block.match(/([#.][\w-]+)\s*\{/)[1];
-                var body = block.match(/\{([^}]+)\}/)[1];
-                css += sel + ' { ';
-                body.split('\n').forEach(function(line) {
-                    line = line.trim();
-                    if (line.includes('=')) {
-                        var parts = line.split('=');
-                        var prop = parts[0].trim().replace('фон','background-color').replace('цвет','color').replace('отступ','padding').replace('углы','border-radius').replace('ширина','width').replace('высота','height').replace('тень','box-shadow').replace('шрифт','font-size');
-                        var val = parts[1].trim();
-                        for (var ru in colors) { val = val.replace(ru, colors[ru]); }
-                        css += prop + ': ' + val + '; ';
-                    }
-                });
-                css += '} ';
-            });
-        }
-        customCSS += css;
-        return '';
-    });
-    
-    // Извлекаем скрипты
-    code = code.replace(/<c\.script>([\s\S]*?)<\/c\.script>/gi, function(match, content) {
-        var js = '<script>';
-        content.split('\n').forEach(function(line) {
-            line = line.trim();
-            if (line.includes('при_нажатии')) {
-                // Ждём реализации
-            }
-        });
-        js += '</script>';
-        scripts += js;
-        return '';
-    });
-    
-    // Убираем обёртку
     code = code.replace(/<CURSED-CODING>/gi, '').replace(/<\/CCURSED-CODING>/gi, '');
     
-    // Парсим теги с id и class
-    function parseTag(code, tag, htmlTag, cssClass) {
-        var regex = new RegExp('<c\\.' + tag + '((?:\\s+(?:id|class)="[^"]*")*)>(.*?)<\\/c\\.' + tag + '>', 'gi');
-        return code.replace(regex, function(match, attrs, content) {
-            var id = '';
-            var cls = cssClass;
-            var idMatch = attrs.match(/id="([^"]*)"/);
-            var classMatch = attrs.match(/class="([^"]*)"/);
-            if (idMatch) id = ' id="' + idMatch[1] + '"';
-            if (classMatch) cls += ' ' + classMatch[1];
-            return '<' + htmlTag + id + ' class="' + cls.trim() + '">' + content + '</' + htmlTag + '>';
-        });
-    }
-    
-    code = parseTag(code, 'title', 'h1', 'crs-title');
-    code = parseTag(code, 'text', 'p', 'crs-text');
-    code = parseTag(code, 'button', 'button', 'crs-btn');
-    code = parseTag(code, 'card', 'div', 'crs-card');
-    code = parseTag(code, 'box', 'div', 'crs-box');
-    code = parseTag(code, 'grid', 'div', 'crs-grid');
-    code = parseTag(code, 'badge', 'span', 'crs-badge');
-    code = parseTag(code, 'alert', 'div', 'crs-alert');
-    
-    // Простые замены
-    code = code.replace(/<c\.input>([\s\S]*?)<\/c\.input>/gi, function(match, placeholder) {
-        return '<input class="crs-input" placeholder="' + placeholder.trim() + '">';
-    });
-    code = code.replace(/<c\.image>([\s\S]*?)<\/c\.image>/gi, '<img class="crs-image" src="$1">');
-    code = code.replace(/<c\.link>([\s\S]*?)<\/c\.link>/gi, '<a class="crs-link" href="$1">Ссылка</a>');
-    code = code.replace(/<c\.list>([\s\S]*?)<\/c\.list>/gi, '<ul class="crs-list">$1</ul>');
-    code = code.replace(/<c\.item>([\s\S]*?)<\/c\.item>/gi, '<li>$1</li>');
-    code = code.replace(/<c\.code>([\s\S]*?)<\/c\.code>/gi, '<pre class="crs-code"><code>$1</code></pre>');
+    code = code.replace(/<c\.title>(.*?)<\/c\.title>/gi, '<h1 style="font-size:28px;color:#a78bfa;margin:10px 0;">$1</h1>');
+    code = code.replace(/<c\.text>(.*?)<\/c\.text>/gi, '<p style="font-size:16px;color:#333;margin:10px 0;">$1</p>');
+    code = code.replace(/<c\.button>(.*?)<\/c\.button>/gi, '<button style="background:#7c3aed;color:#fff;padding:12px 24px;border:none;border-radius:12px;font-size:16px;cursor:pointer;margin:5px;">$1</button>');
+    code = code.replace(/<c\.input>(.*?)<\/c\.input>/gi, '<input style="padding:12px;border-radius:8px;border:1px solid #ccc;width:100%;margin:5px 0;font-size:16px;" placeholder="$1">');
+    code = code.replace(/<c\.card>(.*?)<\/c\.card>/gi, '<div style="background:#f5f5f5;border-radius:20px;padding:25px;margin:10px 0;">$1</div>');
+    code = code.replace(/<c\.box>(.*?)<\/c\.box>/gi, '<div style="border:1px solid #ddd;border-radius:12px;padding:20px;margin:10px 0;">$1</div>');
+    code = code.replace(/<c\.grid>(.*?)<\/c\.grid>/gi, '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:15px;">$1</div>');
+    code = code.replace(/<c\.badge>(.*?)<\/c\.badge>/gi, '<span style="background:#7c3aed;color:#fff;padding:4px 12px;border-radius:20px;font-size:12px;">$1</span>');
+    code = code.replace(/<c\.alert>(.*?)<\/c\.alert>/gi, '<div style="background:#fff3cd;border-left:4px solid #ffc107;padding:15px;border-radius:8px;margin:10px 0;">$1</div>');
     code = code.replace(/<c\.spacer>(\d+)<\/c\.spacer>/gi, '<div style="height:$1px;"></div>');
-    code = code.replace(/<c\.hr>[\s\S]*?<\/c\.hr>/gi, '<hr style="border-color:rgba(255,255,255,0.1);">');
     
-    var full = '<!DOCTYPE html><html><head><meta charset="UTF-8"><style>' + baseCSS + customCSS + '</style></head><body>' + code + scripts + '</body></html>';
+    var html = '<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body style="font-family:Arial;padding:20px;">' + code + '</body></html>';
     
-    document.getElementById('previewFrame').srcdoc = full;
+    document.getElementById('previewFrame').srcdoc = html;
     document.getElementById('previewOverlay').classList.add('active');
 }
 
