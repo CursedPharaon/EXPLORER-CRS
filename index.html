@@ -6,116 +6,18 @@
     <title>KRS Compiler</title>
     <style>
         * { margin:0; padding:0; box-sizing:border-box; }
-        
-        body {
-            font-family: 'Courier New', monospace;
-            background: #0a0a1a;
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-        }
-        
-        .toolbar {
-            background: #1a1a2e;
-            padding: 12px 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 1px solid #7c3aed;
-        }
-        
-        .toolbar h1 {
-            font-size: 18px;
-            background: linear-gradient(135deg, #a78bfa, #7c3aed);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-        
-        .run-btn {
-            background: linear-gradient(135deg, #7c3aed, #4f46e5);
-            color: #fff;
-            border: none;
-            padding: 12px 30px;
-            border-radius: 25px;
-            font-size: 16px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        
-        .run-btn:hover {
-            transform: scale(1.05);
-            box-shadow: 0 0 20px rgba(124, 58, 237, 0.5);
-        }
-        
-        .run-btn:active {
-            transform: scale(0.95);
-        }
-        
-        textarea {
-            flex: 1;
-            background: #0f0c29;
-            color: #c4b5fd;
-            border: none;
-            padding: 20px;
-            font-family: 'Courier New', monospace;
-            font-size: 14px;
-            line-height: 1.6;
-            resize: none;
-            outline: none;
-        }
-        
-        textarea::placeholder {
-            color: rgba(167, 139, 250, 0.3);
-        }
-        
-        /* Окно результата */
-        .preview-overlay {
-            display: none;
-            position: fixed;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            background: #1a1a2e;
-            z-index: 9999;
-            flex-direction: column;
-        }
-        
-        .preview-overlay.active {
-            display: flex;
-        }
-        
-        .preview-header {
-            padding: 10px 20px;
-            display: flex;
-            justify-content: flex-end;
-            background: #0f0c29;
-        }
-        
-        .close-btn {
-            background: rgba(255,255,255,0.1);
-            color: #fff;
-            border: none;
-            width: 35px;
-            height: 35px;
-            border-radius: 50%;
-            font-size: 20px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.2s;
-        }
-        
-        .close-btn:hover {
-            background: #ff4757;
-            transform: rotate(90deg);
-        }
-        
-        iframe {
-            flex: 1;
-            border: none;
-            background: #1a1a2e;
-        }
+        body { font-family:'Courier New',monospace; background:#0a0a1a; height:100vh; display:flex; flex-direction:column; }
+        .toolbar { background:#1a1a2e; padding:12px 20px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #7c3aed; }
+        .toolbar h1 { font-size:18px; background:linear-gradient(135deg,#a78bfa,#7c3aed); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+        .run-btn { background:linear-gradient(135deg,#7c3aed,#4f46e5); color:#fff; border:none; padding:12px 30px; border-radius:25px; font-size:16px; font-weight:bold; cursor:pointer; }
+        textarea { flex:1; background:#0f0c29; color:#c4b5fd; border:none; padding:20px; font-family:'Courier New',monospace; font-size:14px; line-height:1.6; resize:none; outline:none; }
+        textarea::placeholder { color:rgba(167,139,250,0.3); }
+        .preview-overlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#1a1a2e; z-index:9999; flex-direction:column; }
+        .preview-overlay.active { display:flex; }
+        .preview-header { padding:10px 20px; display:flex; justify-content:flex-end; background:#0f0c29; }
+        .close-btn { background:rgba(255,255,255,0.1); color:#fff; border:none; width:35px; height:35px; border-radius:50%; font-size:20px; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+        .close-btn:hover { background:#ff4757; }
+        iframe { flex:1; border:none; background:#1a1a2e; }
     </style>
 </head>
 <body>
@@ -125,36 +27,43 @@
     <button class="run-btn" onclick="compile()">▶ ЗАПУСТИТЬ</button>
 </div>
 
-<textarea id="code" placeholder="Пиши код на КРС здесь...
+<textarea id="code" placeholder="Пиши код на КРС здесь..."><CURSED-CODING>
 
-Пример:
-<CURSED-CODING>
-<c.title>Привет!<c.title>
-<c.button>Нажми<c.button>
-</CCURSED-CODING>"><CURSED-CODING>
+<c.style>
+#myBtn {
+  фон = синий
+  цвет = белый
+  углы = 30px
+  отступ = 15px 30px
+}
+.myCard {
+  фон = фиолетовый
+  углы = 20px
+  тень = 0 5px 20px чёрный
+}
+<c.style>
 
-<c.title>🌟 Мой сайт</c.title>
-
-<c.box>
-<c.text>Привет! Это сайт на языке КРС.</c.text>
-<c.button>Нажми меня</c.button>
-</c.box>
+<c.title>🌟 Сайт с ID и классами</c.title>
 
 <c.grid>
-<c.card>
-<c.title>Услуга 1</c.title>
-<c.text>Описание услуги</c.text>
-<c.badge>Хит</c.badge>
+<c.card id="card1" class="myCard">
+<c.title>Карточка 1</c.title>
+<c.text>С классом myCard</c.text>
+<c.button id="myBtn">Синяя кнопка</c.button>
 </c.card>
-<c.card>
-<c.title>Услуга 2</c.title>
-<c.text>Другое описание</c.text>
-<c.button>Заказать</c.button>
+
+<c.card id="card2">
+<c.title>Карточка 2</c.title>
+<c.text>Без класса</c.text>
+<c.button>Обычная</c.button>
 </c.card>
 </c.grid>
 
-<c.input>Введи имя</c.input>
-<c.alert>⚠️ Это важное уведомление!</c.alert>
+<c.input id="nameInput" placeholder="Введи имя"></c.input>
+
+<c.script>
+при_нажатии показать("Привет, " + имя)
+</c.script>
 
 </CCURSED-CODING></textarea>
 
@@ -169,47 +78,110 @@
 function compile() {
     var code = document.getElementById('code').value;
     
-    var css = `
+    var baseCSS = `
         * { margin:0; padding:0; box-sizing:border-box; }
         body { font-family:Arial,sans-serif; background:#1a1a2e; color:#fff; padding:20px; }
-        .crs-btn { background:linear-gradient(135deg,#7c3aed,#4f46e5); color:#fff; padding:12px 24px; border:none; border-radius:12px; font-size:16px; cursor:pointer; margin:5px; }
-        .crs-btn:hover { transform:scale(1.03); box-shadow:0 10px 25px rgba(124,58,237,0.4); }
+        .crs-btn { background:#7c3aed; color:#fff; padding:12px 24px; border:none; border-radius:12px; font-size:16px; cursor:pointer; margin:5px; }
+        .crs-btn:hover { transform:scale(1.03); }
         .crs-input { padding:12px; border-radius:8px; border:1px solid rgba(255,255,255,0.2); background:rgba(255,255,255,0.05); color:#fff; width:100%; margin:5px 0; font-size:16px; }
-        .crs-card { background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:20px; padding:25px; margin:10px 0; }
+        .crs-card { background:rgba(255,255,255,0.05); border-radius:20px; padding:25px; margin:10px 0; }
         .crs-title { font-size:28px; font-weight:800; background:linear-gradient(135deg,#a78bfa,#7c3aed); -webkit-background-clip:text; -webkit-text-fill-color:transparent; margin:10px 0; }
         .crs-text { font-size:16px; line-height:1.6; margin:10px 0; color:rgba(255,255,255,0.8); }
-        .crs-badge { background:#7c3aed; color:#fff; padding:4px 12px; border-radius:20px; font-size:12px; display:inline-block; font-weight:bold; }
+        .crs-badge { background:#7c3aed; padding:4px 12px; border-radius:20px; font-size:12px; display:inline-block; }
         .crs-alert { background:rgba(255,193,7,0.1); border-left:4px solid #ffc107; padding:15px; border-radius:8px; margin:10px 0; color:#ffc107; }
         .crs-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:15px; }
         .crs-box { border:1px solid rgba(255,255,255,0.2); border-radius:12px; padding:20px; margin:10px 0; }
-        .crs-link { color:#45b7d1; text-decoration:underline; }
+        .crs-link { color:#45b7d1; }
         .crs-image { max-width:100%; border-radius:12px; margin:10px 0; }
-        .crs-list { padding-left:20px; margin:10px 0; }
-        .crs-list li { color:rgba(255,255,255,0.8); padding:3px 0; }
-        .crs-code { background:#0f0c29; padding:15px; border-radius:8px; font-family:monospace; color:#c4b5fd; margin:10px 0; }
+        .crs-list { padding-left:20px; }
+        .crs-code { background:#0f0c29; padding:15px; border-radius:8px; font-family:monospace; }
     `;
     
-    var html = code
-        .replace(/<CURSED-CODING>/gi, '').replace(/<\/CCURSED-CODING>/gi, '')
-        .replace(/<c\.title>/gi, '<h1 class="crs-title">').replace(/<\/c\.title>/gi, '</h1>')
-        .replace(/<c\.text>/gi, '<p class="crs-text">').replace(/<\/c\.text>/gi, '</p>')
-        .replace(/<c\.button>/gi, '<button class="crs-btn">').replace(/<\/c\.button>/gi, '</button>')
-        .replace(/<c\.input>/gi, '<input class="crs-input" placeholder="').replace(/<\/c\.input>/gi, '">')
-        .replace(/<c\.card>/gi, '<div class="crs-card">').replace(/<\/c\.card>/gi, '</div>')
-        .replace(/<c\.box>/gi, '<div class="crs-box">').replace(/<\/c\.box>/gi, '</div>')
-        .replace(/<c\.grid>/gi, '<div class="crs-grid">').replace(/<\/c\.grid>/gi, '</div>')
-        .replace(/<c\.badge>/gi, '<span class="crs-badge">').replace(/<\/c\.badge>/gi, '</span>')
-        .replace(/<c\.alert>/gi, '<div class="crs-alert">').replace(/<\/c\.alert>/gi, '</div>')
-        .replace(/<c\.image>/gi, '<img class="crs-image" src="').replace(/<\/c\.image>/gi, '">')
-        .replace(/<c\.link>/gi, '<a class="crs-link" href="').replace(/<\/c\.link>/gi, '">Ссылка</a>')
-        .replace(/<c\.list>/gi, '<ul class="crs-list">').replace(/<\/c\.list>/gi, '</ul>')
-        .replace(/<c\.item>/gi, '<li>').replace(/<\/c\.item>/gi, '</li>')
-        .replace(/<c\.code>/gi, '<pre class="crs-code"><code>').replace(/<\/c\.code>/gi, '</code></pre>')
-        .replace(/<c\.spacer>/gi, '<div style="height:').replace(/<\/c\.spacer>/gi, 'px;"></div>')
-        .replace(/<c\.hr>/gi, '<hr style="border-color:rgba(255,255,255,0.1);margin:15px 0;">')
-        .replace(/<\/c\.hr>/gi, '');
+    var customCSS = '';
+    var scripts = '';
     
-    var full = '<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><style>' + css + '</style></head><body>' + html + '</body></html>';
+    // Извлекаем стили
+    code = code.replace(/<c\.style>([\s\S]*?)<\/c\.style>/gi, function(match, content) {
+        var css = '';
+        var colors = {'синий':'#2196F3','красный':'#f44336','зелёный':'#4CAF50','фиолетовый':'#7c3aed','белый':'#fff','чёрный':'#000','жёлтый':'#ffc107','оранжевый':'#ff9800','розовый':'#e91e63','серый':'#9e9e9e'};
+        
+        // Парсим блоки: #id { ... } или .class { ... }
+        var blocks = content.match(/([#.][\w-]+)\s*\{([^}]+)\}/g);
+        if (blocks) {
+            blocks.forEach(function(block) {
+                var sel = block.match(/([#.][\w-]+)\s*\{/)[1];
+                var body = block.match(/\{([^}]+)\}/)[1];
+                css += sel + ' { ';
+                body.split('\n').forEach(function(line) {
+                    line = line.trim();
+                    if (line.includes('=')) {
+                        var parts = line.split('=');
+                        var prop = parts[0].trim().replace('фон','background-color').replace('цвет','color').replace('отступ','padding').replace('углы','border-radius').replace('ширина','width').replace('высота','height').replace('тень','box-shadow').replace('шрифт','font-size');
+                        var val = parts[1].trim();
+                        for (var ru in colors) { val = val.replace(ru, colors[ru]); }
+                        css += prop + ': ' + val + '; ';
+                    }
+                });
+                css += '} ';
+            });
+        }
+        customCSS += css;
+        return '';
+    });
+    
+    // Извлекаем скрипты
+    code = code.replace(/<c\.script>([\s\S]*?)<\/c\.script>/gi, function(match, content) {
+        var js = '<script>';
+        content.split('\n').forEach(function(line) {
+            line = line.trim();
+            if (line.includes('при_нажатии')) {
+                // Ждём реализации
+            }
+        });
+        js += '</script>';
+        scripts += js;
+        return '';
+    });
+    
+    // Убираем обёртку
+    code = code.replace(/<CURSED-CODING>/gi, '').replace(/<\/CCURSED-CODING>/gi, '');
+    
+    // Парсим теги с id и class
+    function parseTag(code, tag, htmlTag, cssClass) {
+        var regex = new RegExp('<c\\.' + tag + '((?:\\s+(?:id|class)="[^"]*")*)>(.*?)<\\/c\\.' + tag + '>', 'gi');
+        return code.replace(regex, function(match, attrs, content) {
+            var id = '';
+            var cls = cssClass;
+            var idMatch = attrs.match(/id="([^"]*)"/);
+            var classMatch = attrs.match(/class="([^"]*)"/);
+            if (idMatch) id = ' id="' + idMatch[1] + '"';
+            if (classMatch) cls += ' ' + classMatch[1];
+            return '<' + htmlTag + id + ' class="' + cls.trim() + '">' + content + '</' + htmlTag + '>';
+        });
+    }
+    
+    code = parseTag(code, 'title', 'h1', 'crs-title');
+    code = parseTag(code, 'text', 'p', 'crs-text');
+    code = parseTag(code, 'button', 'button', 'crs-btn');
+    code = parseTag(code, 'card', 'div', 'crs-card');
+    code = parseTag(code, 'box', 'div', 'crs-box');
+    code = parseTag(code, 'grid', 'div', 'crs-grid');
+    code = parseTag(code, 'badge', 'span', 'crs-badge');
+    code = parseTag(code, 'alert', 'div', 'crs-alert');
+    
+    // Простые замены
+    code = code.replace(/<c\.input>([\s\S]*?)<\/c\.input>/gi, function(match, placeholder) {
+        return '<input class="crs-input" placeholder="' + placeholder.trim() + '">';
+    });
+    code = code.replace(/<c\.image>([\s\S]*?)<\/c\.image>/gi, '<img class="crs-image" src="$1">');
+    code = code.replace(/<c\.link>([\s\S]*?)<\/c\.link>/gi, '<a class="crs-link" href="$1">Ссылка</a>');
+    code = code.replace(/<c\.list>([\s\S]*?)<\/c\.list>/gi, '<ul class="crs-list">$1</ul>');
+    code = code.replace(/<c\.item>([\s\S]*?)<\/c\.item>/gi, '<li>$1</li>');
+    code = code.replace(/<c\.code>([\s\S]*?)<\/c\.code>/gi, '<pre class="crs-code"><code>$1</code></pre>');
+    code = code.replace(/<c\.spacer>(\d+)<\/c\.spacer>/gi, '<div style="height:$1px;"></div>');
+    code = code.replace(/<c\.hr>[\s\S]*?<\/c\.hr>/gi, '<hr style="border-color:rgba(255,255,255,0.1);">');
+    
+    var full = '<!DOCTYPE html><html><head><meta charset="UTF-8"><style>' + baseCSS + customCSS + '</style></head><body>' + code + scripts + '</body></html>';
     
     document.getElementById('previewFrame').srcdoc = full;
     document.getElementById('previewOverlay').classList.add('active');
