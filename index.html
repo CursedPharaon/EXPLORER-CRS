@@ -3,131 +3,88 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KRS IDE</title>
+    <title>KRS Explorer</title>
     <style>
         * { margin:0; padding:0; box-sizing:border-box; }
-        body { font-family:monospace; background:#1e1e1e; color:#d4d4d4; height:100vh; display:flex; flex-direction:column; }
-        .menubar { background:#333; padding:5px 10px; display:flex; gap:5px; align-items:center; }
-        .menubar button { background:#444; color:#ccc; border:none; padding:5px 12px; cursor:pointer; font-size:13px; }
-        .menubar button:hover { background:#555; }
-        .menubar span { color:#888; margin:0 10px; font-size:13px; }
-        .tabs { background:#252525; display:flex; padding:0 10px; }
-        .tab { padding:6px 15px; color:#999; cursor:pointer; font-size:13px; border-bottom:2px solid transparent; }
-        .tab.active { color:#fff; border-bottom:2px solid #007acc; }
-        .editor-area { flex:1; display:flex; }
-        .sidebar { background:#252525; width:40px; display:flex; flex-direction:column; align-items:center; padding-top:10px; gap:10px; }
-        .sidebar button { background:none; border:none; color:#888; font-size:18px; cursor:pointer; }
-        .main-editor { flex:1; display:flex; }
-        .line-numbers { background:#1e1e1e; color:#555; padding:15px 5px; text-align:right; font-size:14px; line-height:1.5; width:35px; overflow:hidden; }
-        textarea { flex:1; background:#1e1e1e; color:#d4d4d4; border:none; padding:15px 5px; font-family:monospace; font-size:14px; line-height:1.5; resize:none; outline:none; }
-        .run-btn { position:fixed; bottom:20px; right:20px; width:55px; height:55px; border-radius:50%; background:#007acc; color:#fff; border:none; font-size:24px; cursor:pointer; }
-        .preview { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#fff; z-index:9999; flex-direction:column; }
-        .preview.active { display:flex; }
-        .preview-bar { background:#333; padding:8px 15px; display:flex; justify-content:space-between; }
-        .preview-bar button { background:#e74c3c; color:#fff; border:none; padding:5px 15px; cursor:pointer; }
-        iframe { flex:1; border:none; }
-        .file-list { display:none; position:fixed; top:30px; left:50px; background:#333; padding:10px; border-radius:5px; z-index:100; min-width:200px; }
-        .file-list.active { display:block; }
-        .file-item { padding:5px 10px; cursor:pointer; color:#ccc; font-size:13px; }
-        .file-item:hover { background:#444; }
+        body { background:#e8ecf2; font-family:'Courier New',monospace; padding:20px; }
+        .container { max-width:1400px; margin:0 auto; background:white; border:1px solid #aaa; border-radius:8px; overflow:hidden; }
+        .header { background:#d9dfe8; padding:10px 16px; border-bottom:1px solid #999; font-weight:bold; font-size:1.3rem; display:flex; justify-content:space-between; }
+        .workspace { display:flex; flex-wrap:wrap; }
+        .editor-panel { flex:1.2; min-width:450px; border-right:1px solid #ccc; }
+        .editor-header { background:#eef2f7; padding:6px 12px; border-bottom:1px solid #bbb; font-weight:bold; display:flex; justify-content:space-between; }
+        .editor-with-lines { display:flex; background:#fefef7; }
+        .line-numbers { background:#f0f2f5; padding:12px 8px; text-align:right; font-family:monospace; font-size:13px; line-height:1.5; color:#888; border-right:1px solid #ddd; min-width:45px; }
+        .line-numbers div { white-space:pre; }
+        textarea { width:100%; font-family:monospace; font-size:13px; padding:12px; border:none; background:#fefef7; resize:vertical; min-height:450px; outline:none; }
+        .button-bar { padding:10px; background:#eef2f7; border-top:1px solid #ccc; display:flex; gap:10px; flex-wrap:wrap; }
+        button { background:#e0e5ec; border:1px solid #8a9cb0; padding:6px 16px; font-family:monospace; font-weight:bold; cursor:pointer; }
+        button:hover { background:#d0d8e4; }
+        .output-panel { flex:1; min-width:350px; background:#fff; display:flex; flex-direction:column; }
+        .output-header { background:#eef2f7; padding:6px 12px; border-bottom:1px solid #bbb; font-weight:bold; }
+        .render-area { padding:16px; background:white; min-height:500px; overflow-y:auto; }
+        .error-box { background:#fff0ee; border-left:5px solid #c00; padding:10px; color:#a00; display:none; margin:10px; }
     </style>
 </head>
 <body>
 
-<div class="menubar">
-    <button onclick="newFile()">📄 Новый</button>
-    <button onclick="toggleFiles()">📁 Файлы</button>
-    <button onclick="save()">💾 Сохранить</button>
-    <button onclick="convertToHtml()">🌐 Конверт в HTML</button>
-    <span id="filename">untitled.crs</span>
-</div>
-
-<div class="tabs"><div class="tab active" id="tab1">untitled.crs</div></div>
-
-<div class="editor-area">
-    <div class="sidebar">
-        <button onclick="toggleFiles()">📁</button>
-        <button onclick="newFile()">📄</button>
-        <button onclick="save()">💾</button>
-        <button onclick="convertToHtml()">🌐</button>
-    </div>
-    <div class="main-editor">
-        <div class="line-numbers" id="lineNumbers">1</div>
-        <textarea id="editor"><CURSED-CODING>
-<c.style>
-#myBtn {
-  фон = синий
-  цвет = белый
-  углы = 12px
-  отступ = 10px 20px
-}
-</c.style>
-
-<c.title>Привет!</c.title>
-<c.button id="myBtn">Нажми</c.button>
-
-<c.script>
-alert('Работает!')
-</c.script>
+<div class="container">
+    <div class="header"><div>KRS LANGUAGE EXPLORER</div><span>&lt;c.тег&gt; ... &lt;/c.тег&gt;</span></div>
+    <div class="workspace">
+        <div class="editor-panel">
+            <div class="editor-header"><span>РЕДАКТОР КРС</span><span id="lineCountInfo">строк: 0</span></div>
+            <div class="editor-with-lines">
+                <div class="line-numbers" id="lineNumbers"></div>
+                <textarea id="crsCode" rows="18"><CURSED-CODING>
+<c.title>🌟 Привет, мир!</c.title>
+<c.box>
+<c.text>Добро пожаловать в KRS Language!</c.text>
+<c.button>Нажми меня</c.button>
+</c.box>
 </CCURSED-CODING></textarea>
+            </div>
+            <div class="button-bar">
+                <button id="runBtn">▶ ЗАПУСТИТЬ</button>
+                <button id="clearOutput">🗑 ОЧИСТИТЬ</button>
+                <button id="copyBtn">📋 Копировать HTML</button>
+                <button id="downloadBtn">📥 Скачать HTML</button>
+            </div>
+        </div>
+        <div class="output-panel">
+            <div class="output-header">📺 РЕЗУЛЬТАТ</div>
+            <div id="errorPanel" class="error-box"></div>
+            <div id="renderContainer" class="render-area"></div>
+        </div>
     </div>
-</div>
-
-<button class="run-btn" onclick="run()">▶</button>
-<div class="file-list" id="fileList"></div>
-
-<div class="preview" id="preview">
-    <div class="preview-bar">
-        <button onclick="downloadHtml()" style="background:#2ecc71;">📥 Скачать HTML</button>
-        <button onclick="closePreview()">✕</button>
-    </div>
-    <iframe id="previewFrame"></iframe>
 </div>
 
 <script>
-var currentFile = 'untitled.crs';
-var files = JSON.parse(localStorage.getItem('krs_files') || '{}');
 var lastHtml = '';
 
-document.getElementById('editor').addEventListener('input', updateLines);
-document.getElementById('editor').addEventListener('scroll', function() {
-    document.getElementById('lineNumbers').scrollTop = this.scrollTop;
-});
-
-function updateLines() {
-    var lines = document.getElementById('editor').value.split('\n');
-    var nums = '';
-    for (var i=1; i<=lines.length; i++) nums += i + '\n';
-    document.getElementById('lineNumbers').textContent = nums;
-}
-
-function compile(code) {
-    // Убираем обёртку
+function compileKRS(code) {
     code = code.replace(/<CURSED-CODING>/gi,'').replace(/<\/CCURSED-CODING>/gi,'');
     
-    // Извлекаем стили
+    // Извлекаем стили до обработки
     var styles = '';
-    code = code.replace(/<c\.style>([\s\S]*?)<\/c\.style>/gi, function(m, content) {
+    code = code.replace(/<c\.style>([\s\S]*?)<\/c\.style>/gi, function(m, c) {
         var css = '';
-        var blocks = content.match(/([#.][\w-]*)\s*\{([^}]*)\}/g);
+        var blocks = c.match(/([#.\w-]+)\s*\{([^}]*)\}/g);
         if (blocks) {
-            blocks.forEach(function(block) {
-                var sel = block.match(/([#.][\w-]*)\s*\{/)[1];
-                var body = block.match(/\{([^}]*)\}/)[1];
-                css += sel + ' { ';
-                body.split('\n').forEach(function(line) {
-                    line = line.trim();
-                    if (line.includes('=')) {
-                        var parts = line.split('=');
-                        var prop = parts[0].trim();
-                        var val = parts[1].trim();
-                        var colors = {'синий':'#2196F3','тёмно-синий':'#1565C0','красный':'#f44336','зелёный':'#4CAF50','фиолетовый':'#7c3aed','белый':'#fff','чёрный':'#000','жёлтый':'#ffc107','оранжевый':'#ff9800','розовый':'#e91e63','серый':'#9e9e9e'};
-                        prop = prop.replace('фон','background').replace('цвет','color').replace('отступ','padding').replace('углы','border-radius').replace('ширина','width').replace('высота','height').replace('тень','box-shadow').replace('шрифт','font-size');
-                        for (var k in colors) { val = val.replace(k, colors[k]); }
-                        css += prop + ': ' + val + '; ';
+            blocks.forEach(function(b) {
+                var sel = b.match(/([#.\w-]+)\s*\{/)[1];
+                var body = b.match(/\{([^}]*)\}/)[1];
+                css += sel + '{';
+                body.split('\n').forEach(function(l) {
+                    l = l.trim();
+                    if (l.includes('=')) {
+                        var p = l.split('=');
+                        var prop = p[0].trim().replace('фон','background').replace('цвет','color').replace('отступ','padding').replace('углы','border-radius').replace('ширина','width').replace('высота','height').replace('тень','box-shadow').replace('шрифт','font-size');
+                        var val = p[1].trim();
+                        var cols = {'синий':'#2196F3','тёмно-синий':'#1565C0','красный':'#f44336','зелёный':'#4CAF50','фиолетовый':'#7c3aed','белый':'#fff','чёрный':'#000','жёлтый':'#ffc107','оранжевый':'#ff9800','розовый':'#e91e63','серый':'#9e9e9e'};
+                        for (var k in cols) val = val.replace(k, cols[k]);
+                        css += prop + ':' + val + ';';
                     }
                 });
-                css += '} ';
+                css += '}';
             });
         }
         styles += css;
@@ -136,175 +93,166 @@ function compile(code) {
     
     // Извлекаем скрипты
     var scripts = '';
-    code = code.replace(/<c\.script>([\s\S]*?)<\/c\.script>/gi, function(m, content) {
-        scripts += '<script>' + content + '<\/script>';
+    code = code.replace(/<c\.script>([\s\S]*?)<\/c\.script>/gi, function(m, c) {
+        scripts += '<script>' + c + '<\/script>';
         return '';
     });
     
-    // Заменяем теги
-    code = code.replace(/<c\.title>(.*?)<\/c\.title>/gi,'<h1 class="crs-title">$1</h1>');
-    code = code.replace(/<c\.subtitle>(.*?)<\/c\.subtitle>/gi,'<h2 class="crs-subtitle">$1</h2>');
-    code = code.replace(/<c\.heading>(.*?)<\/c\.heading>/gi,'<h3 class="crs-heading">$1</h3>');
-    code = code.replace(/<c\.text>(.*?)<\/c\.text>/gi,'<p class="crs-text">$1</p>');
-    code = code.replace(/<c\.span>(.*?)<\/c\.span>/gi,'<span>$1</span>');
-    code = code.replace(/<c\.card>(.*?)<\/c\.card>/gi,'<div class="crs-card">$1</div>');
-    code = code.replace(/<c\.box>(.*?)<\/c\.box>/gi,'<div class="crs-box">$1</div>');
-    code = code.replace(/<c\.grid>(.*?)<\/c\.grid>/gi,'<div class="crs-grid">$1</div>');
-    code = code.replace(/<c\.flex>(.*?)<\/c\.flex>/gi,'<div class="crs-flex">$1</div>');
-    code = code.replace(/<c\.center>(.*?)<\/c\.center>/gi,'<div class="crs-center">$1</div>');
-    code = code.replace(/<c\.container>(.*?)<\/c\.container>/gi,'<div class="crs-container">$1</div>');
+    // 65 команд
+    var tags = [
+        ['title','h1 class="crs-title"'],
+        ['subtitle','h2 class="crs-subtitle"'],
+        ['heading','h3 class="crs-heading"'],
+        ['text','p class="crs-text"'],
+        ['span','span'],
+        ['card','div class="crs-card"'],
+        ['box','div class="crs-box"'],
+        ['grid','div class="crs-grid"'],
+        ['flex','div class="crs-flex"'],
+        ['center','div class="crs-center"'],
+        ['container','div class="crs-container"'],
+        ['button','button class="crs-btn"'],
+        ['input','input class="crs-input" placeholder="'],
+        ['textarea','textarea class="crs-textarea" placeholder="'],
+        ['select','select class="crs-select"'],
+        ['option','option'],
+        ['checkbox','label class="crs-checkbox"><input type="checkbox"> '],
+        ['radio','label class="crs-radio"><input type="radio"> '],
+        ['number','input type="number" class="crs-number" placeholder="'],
+        ['date','input type="date" class="crs-date"'],
+        ['time','input type="time" class="crs-time"'],
+        ['color','input type="color" class="crs-color" value="'],
+        ['range','input type="range" class="crs-range" value="'],
+        ['email','input type="email" class="crs-input" placeholder="'],
+        ['password','input type="password" class="crs-input" placeholder="'],
+        ['search','input type="search" class="crs-input" placeholder="'],
+        ['image','img class="crs-image" src="'],
+        ['video','video class="crs-video" src="'],
+        ['audio','audio class="crs-audio" src="'],
+        ['link','a class="crs-link" href="'],
+        ['iframe','iframe class="crs-iframe" src="'],
+        ['svg','svg'],
+        ['list','ul class="crs-list"'],
+        ['olist','ol class="crs-olist"'],
+        ['item','li'],
+        ['menu','menu'],
+        ['table','table class="crs-table"'],
+        ['row','tr'],
+        ['header','th'],
+        ['cell','td'],
+        ['badge','span class="crs-badge"'],
+        ['mark','mark'],
+        ['code','pre class="crs-code"><code>'],
+        ['alert','div class="crs-alert"'],
+        ['progress','progress class="crs-progress" value="'],
+        ['tooltip','span class="crs-tooltip" title="'],
+        ['quote','blockquote'],
+        ['divider','hr'],
+        ['details','details class="crs-details"'],
+        ['summary','summary'],
+        ['spacer','div style="height:'],
+        ['br','br'],
+        ['header_section','header'],
+        ['footer_section','footer'],
+        ['nav','nav'],
+        ['section','section'],
+        ['aside','aside'],
+        ['meter','meter value="'],
+        ['output','output'],
+        ['button_link','a class="crs-btn" href="'],
+        ['file','input type="file"'],
+        ['hidden','input type="hidden" value="'],
+        ['html','']
+    ];
     
-    // Формы
-    code = code.replace(/<c\.button>(.*?)<\/c\.button>/gi,'<button class="crs-btn">$1</button>');
-    code = code.replace(/<c\.input>(.*?)<\/c\.input>/gi,'<input class="crs-input" placeholder="$1">');
-    code = code.replace(/<c\.textarea>(.*?)<\/c\.textarea>/gi,'<textarea class="crs-textarea" placeholder="$1"></textarea>');
-    code = code.replace(/<c\.select>(.*?)<\/c\.select>/gi,'<select class="crs-select">$1</select>');
-    code = code.replace(/<c\.option>(.*?)<\/c\.option>/gi,'<option>$1</option>');
-    code = code.replace(/<c\.checkbox>(.*?)<\/c\.checkbox>/gi,'<label class="crs-checkbox"><input type="checkbox"> $1</label>');
-    code = code.replace(/<c\.radio>(.*?)<\/c\.radio>/gi,'<label class="crs-radio"><input type="radio"> $1</label>');
-    code = code.replace(/<c\.number>(.*?)<\/c\.number>/gi,'<input type="number" class="crs-number" placeholder="$1">');
-    code = code.replace(/<c\.date>(.*?)<\/c\.date>/gi,'<input type="date" class="crs-date">');
-    code = code.replace(/<c\.time>(.*?)<\/c\.time>/gi,'<input type="time" class="crs-time">');
-    code = code.replace(/<c\.color>(.*?)<\/c\.color>/gi,'<input type="color" class="crs-color" value="$1">');
-    code = code.replace(/<c\.range>(.*?)<\/c\.range>/gi,'<input type="range" class="crs-range" value="$1">');
-    code = code.replace(/<c\.email>(.*?)<\/c\.email>/gi,'<input type="email" class="crs-input" placeholder="$1">');
-    code = code.replace(/<c\.password>(.*?)<\/c\.password>/gi,'<input type="password" class="crs-input" placeholder="$1">');
-    code = code.replace(/<c\.search>(.*?)<\/c\.search>/gi,'<input type="search" class="crs-input" placeholder="$1">');
+    for (var i = 0; i < tags.length; i++) {
+        var t = tags[i][0];
+        var h = tags[i][1];
+        var close = '</' + h.split(' ')[0] + '>';
+        
+        if (t === 'input' || t === 'number' || t === 'email' || t === 'password' || t === 'search') {
+            code = code.replace(new RegExp('<c\\.' + t + '>(.*?)</c\\.' + t + '>', 'gi'), '<' + h + '$1">');
+        } else if (t === 'image' || t === 'video' || t === 'audio' || t === 'link' || t === 'iframe' || t === 'color' || t === 'range' || t === 'button_link' || t === 'hidden') {
+            code = code.replace(new RegExp('<c\\.' + t + '>(.*?)</c\\.' + t + '>', 'gi'), '<' + h + '$1">' + (t === 'audio' || t === 'video' ? '</' + h.split(' ')[0] + '>' : t === 'link' ? '</a>' : t === 'button_link' ? '</a>' : ''));
+        } else if (t === 'checkbox') {
+            code = code.replace(new RegExp('<c\\.' + t + '>(.*?)</c\\.' + t + '>', 'gi'), '<' + h + '$1</label>');
+        } else if (t === 'radio') {
+            code = code.replace(new RegExp('<c\\.' + t + '>(.*?)</c\\.' + t + '>', 'gi'), '<' + h + '$1</label>');
+        } else if (t === 'code') {
+            code = code.replace(new RegExp('<c\\.' + t + '>(.*?)</c\\.' + t + '>', 'gi'), '<' + h + '$1</code></pre>');
+        } else if (t === 'tooltip') {
+            code = code.replace(new RegExp('<c\\.' + t + '>(.*?)</c\\.' + t + '>', 'gi'), '<' + h + '$1">$1</span>');
+        } else if (t === 'progress' || t === 'meter') {
+            code = code.replace(new RegExp('<c\\.' + t + '>(.*?)</c\\.' + t + '>', 'gi'), '<' + h + '$1" max="100"></' + h.split(' ')[0] + '>');
+        } else if (t === 'spacer') {
+            code = code.replace(new RegExp('<c\\.' + t + '>(.*?)</c\\.' + t + '>', 'gi'), '<' + h + '$1px;"></div>');
+        } else if (t === 'br' || t === 'file' || t === 'divider') {
+            code = code.replace(new RegExp('<c\\.' + t + '>.*?</c\\.' + t + '>', 'gi'), '<' + h + '>');
+        } else if (t === 'html') {
+            code = code.replace(new RegExp('<c\\.' + t + '>([\\s\\S]*?)</c\\.' + t + '>', 'gi'), '$1');
+        } else if (t === 'svg') {
+            code = code.replace(new RegExp('<c\\.' + t + '>(.*?)</c\\.' + t + '>', 'gi'), '<' + h + '>$1</svg>');
+        } else if (t === 'date' || t === 'time') {
+            code = code.replace(new RegExp('<c\\.' + t + '>(.*?)</c\\.' + t + '>', 'gi'), '<' + h + '>');
+        } else {
+            code = code.replace(new RegExp('<c\\.' + t + '>(.*?)</c\\.' + t + '>', 'gi'), '<' + h + '>$1' + close);
+        }
+    }
     
-    // Медиа
-    code = code.replace(/<c\.image>(.*?)<\/c\.image>/gi,'<img class="crs-image" src="$1">');
-    code = code.replace(/<c\.video>(.*?)<\/c\.video>/gi,'<video class="crs-video" src="$1" controls></video>');
-    code = code.replace(/<c\.audio>(.*?)<\/c\.audio>/gi,'<audio class="crs-audio" src="$1" controls></audio>');
-    code = code.replace(/<c\.link>(.*?)<\/c\.link>/gi,'<a class="crs-link" href="$1">$1</a>');
-    code = code.replace(/<c\.iframe>(.*?)<\/c\.iframe>/gi,'<iframe class="crs-iframe" src="$1"></iframe>');
-    
-    // Списки
-    code = code.replace(/<c\.list>(.*?)<\/c\.list>/gi,'<ul class="crs-list">$1</ul>');
-    code = code.replace(/<c\.olist>(.*?)<\/c\.olist>/gi,'<ol class="crs-olist">$1</ol>');
-    code = code.replace(/<c\.item>(.*?)<\/c\.item>/gi,'<li>$1</li>');
-    code = code.replace(/<c\.menu>(.*?)<\/c\.menu>/gi,'<menu>$1</menu>');
-    
-    // Таблицы
-    code = code.replace(/<c\.table>(.*?)<\/c\.table>/gi,'<table class="crs-table">$1</table>');
-    code = code.replace(/<c\.row>(.*?)<\/c\.row>/gi,'<tr>$1</tr>');
-    code = code.replace(/<c\.header>(.*?)<\/c\.header>/gi,'<th>$1</th>');
-    code = code.replace(/<c\.cell>(.*?)<\/c\.cell>/gi,'<td>$1</td>');
-    
-    // Оформление
-    code = code.replace(/<c\.badge>(.*?)<\/c\.badge>/gi,'<span class="crs-badge">$1</span>');
-    code = code.replace(/<c\.mark>(.*?)<\/c\.mark>/gi,'<mark>$1</mark>');
-    code = code.replace(/<c\.code>(.*?)<\/c\.code>/gi,'<pre class="crs-code"><code>$1</code></pre>');
-    code = code.replace(/<c\.alert>(.*?)<\/c\.alert>/gi,'<div class="crs-alert">$1</div>');
-    code = code.replace(/<c\.progress>(.*?)<\/c\.progress>/gi,'<progress class="crs-progress" value="$1" max="100"></progress>');
-    code = code.replace(/<c\.tooltip>(.*?)<\/c\.tooltip>/gi,'<span class="crs-tooltip" title="$1">$1</span>');
-    code = code.replace(/<c\.quote>(.*?)<\/c\.quote>/gi,'<blockquote>$1</blockquote>');
-    code = code.replace(/<c\.divider>(.*?)<\/c\.divider>/gi,'<hr>');
-    
-    // Специальные
-    code = code.replace(/<c\.details>(.*?)<\/c\.details>/gi,'<details class="crs-details">$1</details>');
-    code = code.replace(/<c\.summary>(.*?)<\/c\.summary>/gi,'<summary>$1</summary>');
-    code = code.replace(/<c\.spacer>(.*?)<\/c\.spacer>/gi,'<div style="height:$1px;"></div>');
-    code = code.replace(/<c\.br>(.*?)<\/c\.br>/gi,'<br>');
-    
-    // Секции
-    code = code.replace(/<c\.header_section>(.*?)<\/c\.header_section>/gi,'<header>$1</header>');
-    code = code.replace(/<c\.footer_section>(.*?)<\/c\.footer_section>/gi,'<footer>$1</footer>');
-    code = code.replace(/<c\.nav>(.*?)<\/c\.nav>/gi,'<nav>$1</nav>');
-    code = code.replace(/<c\.section>(.*?)<\/c\.section>/gi,'<section>$1</section>');
-    code = code.replace(/<c\.aside>(.*?)<\/c\.aside>/gi,'<aside>$1</aside>');
-    
-    code = code.replace(/<c\.meter>(.*?)<\/c\.meter>/gi,'<meter value="$1" min="0" max="100"></meter>');
-    code = code.replace(/<c\.output>(.*?)<\/c\.output>/gi,'<output>$1</output>');
-    code = code.replace(/<c\.button_link>(.*?)<\/c\.button_link>/gi,'<a class="crs-btn" href="$1">$1</a>');
-    code = code.replace(/<c\.file>(.*?)<\/c\.file>/gi,'<input type="file">');
-    code = code.replace(/<c\.hidden>(.*?)<\/c\.hidden>/gi,'<input type="hidden" value="$1">');
-    code = code.replace(/<c\.html>([\s\S]*?)<\/c\.html>/gi, '$1');
-    
-    // Собираем всё
-    var baseCSS = '*{margin:0;padding:0;box-sizing:border-box}body{font-family:Arial;padding:20px}.crs-title{font-size:32px;color:#7c3aed;margin:10px 0}.crs-subtitle{font-size:24px;color:#555}.crs-heading{font-size:18px}.crs-text{font-size:16px}.crs-btn{background:#7c3aed;color:#fff;padding:12px 24px;border:none;border-radius:12px;cursor:pointer;margin:5px;display:inline-block;text-decoration:none}.crs-input{padding:12px;border:1px solid #ccc;border-radius:8px;width:100%;margin:5px 0}.crs-card{background:#f5f5f5;padding:20px;border-radius:15px;margin:10px 0}.crs-box{border:1px solid #ddd;padding:20px;border-radius:12px;margin:10px 0}.crs-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:15px}.crs-flex{display:flex;gap:15px;flex-wrap:wrap}.crs-center{text-align:center}.crs-container{max-width:1200px;margin:0 auto}.crs-badge{background:#7c3aed;color:#fff;padding:4px 12px;border-radius:20px;font-size:12px;display:inline-block}.crs-alert{background:#fff3cd;border-left:4px solid #ffc107;padding:15px;margin:10px 0}.crs-code{background:#1e1e1e;color:#d4d4d4;padding:15px;border-radius:8px;font-family:monospace}.crs-table{border-collapse:collapse;width:100%}.crs-table td,.crs-table th{border:1px solid #ddd;padding:8px}.crs-table th{background:#f5f5f5}.crs-image{max-width:100%;border-radius:12px}.crs-video,.crs-audio{max-width:100%}.crs-link{color:#007acc}.crs-textarea{padding:12px;border:1px solid #ccc;border-radius:8px;width:100%;resize:vertical;min-height:100px}.crs-select{padding:12px;border:1px solid #ccc;border-radius:8px;width:100%}.crs-checkbox,.crs-radio{display:block;margin:5px 0}.crs-progress{width:100%}.crs-tooltip{border-bottom:1px dotted #666;cursor:help}blockquote{border-left:4px solid #7c3aed;padding:10px 20px;margin:10px 0;background:#f9f9f9}header,footer{background:#333;color:#fff;padding:20px}nav{background:#555;color:#fff;padding:10px}section{padding:20px;margin:10px 0}aside{background:#f5f5f5;padding:15px;border-radius:10px}';
+    var baseCSS = '*{margin:0;padding:0;box-sizing:border-box}body{font-family:Arial;padding:20px}.crs-title{font-size:32px;color:#7c3aed;margin:10px 0}.crs-subtitle{font-size:24px;color:#555}.crs-heading{font-size:18px}.crs-text{font-size:16px}.crs-btn{background:#7c3aed;color:#fff;padding:12px 24px;border:none;border-radius:12px;cursor:pointer;margin:5px;display:inline-block;text-decoration:none}.crs-input{padding:12px;border:1px solid #ccc;border-radius:8px;width:100%;margin:5px 0;font-size:16px}.crs-card{background:#f5f5f5;padding:20px;border-radius:15px;margin:10px 0}.crs-box{border:1px solid #ddd;padding:20px;border-radius:12px;margin:10px 0}.crs-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:15px}.crs-flex{display:flex;gap:15px;flex-wrap:wrap}.crs-center{text-align:center}.crs-container{max-width:1200px;margin:0 auto}.crs-badge{background:#7c3aed;color:#fff;padding:4px 12px;border-radius:20px;font-size:12px;display:inline-block}.crs-alert{background:#fff3cd;border-left:4px solid #ffc107;padding:15px;margin:10px 0}.crs-code{background:#1e1e1e;color:#d4d4d4;padding:15px;border-radius:8px;font-family:monospace}.crs-table{border-collapse:collapse;width:100%}.crs-table td,.crs-table th{border:1px solid #ddd;padding:8px}.crs-table th{background:#f5f5f5}.crs-image{max-width:100%;border-radius:12px}.crs-video,.crs-audio{max-width:100%}.crs-link{color:#007acc}.crs-textarea{padding:12px;border:1px solid #ccc;border-radius:8px;width:100%;resize:vertical;min-height:100px}.crs-select{padding:12px;border:1px solid #ccc;border-radius:8px;width:100%}.crs-checkbox,.crs-radio{display:block;margin:5px 0}.crs-progress{width:100%}.crs-tooltip{border-bottom:1px dotted #666;cursor:help}blockquote{border-left:4px solid #7c3aed;padding:10px 20px;margin:10px 0;background:#f9f9f9}header,footer{background:#333;color:#fff;padding:20px}nav{background:#555;color:#fff;padding:10px}section{padding:20px;margin:10px 0}aside{background:#f5f5f5;padding:15px;border-radius:10px}.crs-audio{width:100%}';
     
     return '<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>KRS App</title><style>' + baseCSS + styles + '</style></head><body>' + code + scripts + '</body></html>';
 }
 
-function save() {
-    var code = document.getElementById('editor').value;
-    var name = prompt('Имя файла:', currentFile);
-    if (!name) return;
-    if (!name.endsWith('.crs')) name += '.crs';
-    files[name] = code;
-    localStorage.setItem('krs_files', JSON.stringify(files));
-    currentFile = name;
-    document.getElementById('filename').textContent = name;
-    document.getElementById('tab1').textContent = name;
+function executeKRS() {
+    var code = document.getElementById('crsCode').value;
+    var html = compileKRS(code);
+    lastHtml = html;
+    document.getElementById('renderContainer').innerHTML = html;
 }
 
-function newFile() {
-    if (document.getElementById('editor').value && !confirm('Сохранить текущий?')) return;
-    document.getElementById('editor').value = '<CURSED-CODING>\n\n</CCURSED-CODING>';
-    currentFile = 'untitled.crs';
-    document.getElementById('filename').textContent = 'untitled.crs';
-    document.getElementById('tab1').textContent = 'untitled.crs';
-    updateLines();
-}
+// Кнопки
+document.getElementById('runBtn').onclick = executeKRS;
+document.getElementById('clearOutput').onclick = function() {
+    document.getElementById('renderContainer').innerHTML = '<div style="color:#aaa;text-align:center;padding:40px;">✨ Результат появится здесь ✨</div>';
+};
 
-function toggleFiles() {
-    var list = document.getElementById('fileList');
-    if (list.classList.contains('active')) { list.classList.remove('active'); return; }
-    var html = '';
-    Object.keys(files).forEach(function(name) {
-        html += '<div class="file-item" onclick="loadFile(\'' + name + '\')">📄 ' + name + '</div>';
-        html += '<div class="file-item" onclick="deleteFile(\'' + name + '\')" style="color:#e74c3c;">🗑 Удалить</div>';
+document.getElementById('copyBtn').onclick = function() {
+    if (!lastHtml) { alert('Сначала запустите код!'); return; }
+    navigator.clipboard.writeText(lastHtml).then(function() {
+        alert('✅ HTML скопирован!');
     });
-    if (!html) html = '<div class="file-item" style="color:#888;">Нет файлов</div>';
-    list.innerHTML = html;
-    list.classList.add('active');
-}
+};
 
-function loadFile(name) {
-    document.getElementById('editor').value = files[name];
-    currentFile = name;
-    document.getElementById('filename').textContent = name;
-    document.getElementById('tab1').textContent = name;
-    document.getElementById('fileList').classList.remove('active');
-    updateLines();
-}
-
-function deleteFile(name) {
-    if (confirm('Удалить ' + name + '?')) {
-        delete files[name];
-        localStorage.setItem('krs_files', JSON.stringify(files));
-        toggleFiles();
-    }
-}
-
-function run() {
-    lastHtml = compile(document.getElementById('editor').value);
-    document.getElementById('previewFrame').srcdoc = lastHtml;
-    document.getElementById('preview').classList.add('active');
-}
-
-function closePreview() {
-    document.getElementById('preview').classList.remove('active');
-}
-
-function convertToHtml() {
-    lastHtml = compile(document.getElementById('editor').value);
+document.getElementById('downloadBtn').onclick = function() {
+    if (!lastHtml) { alert('Сначала запустите код!'); return; }
     var blob = new Blob([lastHtml], {type: 'text/html'});
     var a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = currentFile.replace('.crs', '.html');
+    a.download = 'index.html';
     a.click();
+};
+
+// Номера строк
+var editor = document.getElementById('crsCode');
+var lineNumbersDiv = document.getElementById('lineNumbers');
+var lineCountInfo = document.getElementById('lineCountInfo');
+
+function updateLineNumbers() {
+    var lines = editor.value.split('\n');
+    lineCountInfo.textContent = 'строк: ' + lines.length;
+    var html = '';
+    for (var i = 1; i <= lines.length; i++) html += '<div>' + i + '</div>';
+    lineNumbersDiv.innerHTML = html;
 }
 
-function downloadHtml() {
-    var blob = new Blob([lastHtml], {type: 'text/html'});
-    var a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = currentFile.replace('.crs', '.html');
-    a.click();
-}
+editor.addEventListener('input', updateLineNumbers);
+editor.addEventListener('scroll', function() {
+    lineNumbersDiv.scrollTop = editor.scrollTop;
+});
 
-updateLines();
+updateLineNumbers();
+executeKRS();
 </script>
 </body>
 </html>
